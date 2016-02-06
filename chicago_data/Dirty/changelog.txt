@@ -1,0 +1,1 @@
+2/5/2015 libraries.csv and sex_offenders.csv cleaned, moved to clean folder. There were some ; in libraries.csv, changed to | before cleaning.
