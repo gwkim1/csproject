@@ -1,9 +1,3 @@
-Turn Location column in libraries.csv into two columns: latitude, longitude.
-Turn Block column in sex_offenders.csv into two approximate(?) columns as above
+Turn Block column in sex_offenders.csv into two approximate(?) lat/long columns
 
-Remove unneeded columns from: business_licenses.csv, sex_offenders.csv, libraries.csv,
-
-Figure out how to use the haversine function in sql_stuff.py through python interface with sqlite objects. (i.e. talk to matt wachs again)
-
-
-
+Remove unneeded columns from: business_licenses.csv (very large)

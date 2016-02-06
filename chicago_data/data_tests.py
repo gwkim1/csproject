@@ -1,4 +1,6 @@
 import csv
+import os
+import re
 
 data_folder="Clean/"
 def add_crime_codes(filename):
@@ -33,8 +35,7 @@ def add_crime_codes(filename):
 
 
 def check_columns(filename):
-	'''checks a CSV file for the expected number of fields for each row based on the number of fields in the first row, assumed to be a header
-	Also checks if double quotes are in any fields, usually a sign of commas inside the fields, which needs fixing.'''
+	'''checks a CSV file for the expected number of fields for each row based on the number of fields in the first row, assumed to be a header'''
 	with open(data_folder+filename) as f:
 		header=f.readline()
 		columns=len(header.split(","))
@@ -46,9 +47,6 @@ def check_columns(filename):
 				assert columns==len(row)
 			except AssertionError:
 				print ("row {} had {} lines, expected {}".format(count, len(row), columns))
-			for j in range(len(row)):
-				if '"' in row[j]:
-					print("row {} has double quotes inside field {}: {}".format(count, j, row[j]))
 
 def fix_codes(n, filename):
 	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row, specified as an input
@@ -105,6 +103,33 @@ def remove_columns(filename, columns_to_erase):
 			    g.write(new_row_string+"\n")
 			except:
 				assert row==[]
+
+	os.remove(data_folder+filename)
+	os.rename(data_folder+filename+"2", data_folder+filename)
+
+def fix_fire_stations(filename):
+	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
+		reader=csv.reader(f, delimiter=",")
+		header=next(reader)
+		header_string=",".join(header)
+		g.write(header_string+",LATITUDE,LONGITUDE\n")
+		for row in reader:
+			location_string=row.pop(-1)
+			location=re.search("\(([0-9.-]+), ([0-9.-]+)\)", location_string)
+			if location:
+				latitude, longitude=location.group(1), location.group(2)
+			else:
+				latitude, longitude="",""
+			row_string=",".join(row)+',"'+location_string+'",'+latitude+","+longitude+"\n"
+			g.write(row_string)
+
+	os.remove(data_folder+filename)
+	os.rename(data_folder+filename+"2", data_folder+filename)
+
+def get_header(filename):
+	with open(data_folder+filename, "r") as f:
+		reader=csv.reader(f, delimiter=",")
+		return next(reader)
 
 if __name__=="__main__":
 	pass
