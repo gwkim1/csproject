@@ -1,0 +1,14 @@
+2/5/2015 libraries.csv and sex_offenders.csv cleaned, moved to clean folder. There were some ; in libraries.csv, changed to | before cleaning.
+2/6/2015 traffic_counts.csv, divvy_stations.csv, bike_racks.csv, fire_stations.csv, police_stations.csv added
+2/6/2015 Removed following columns from divvy_stations: Location, Station name
+2/6/2015 Removed following columns from bike_racks: Location, F12, F13
+2/6/2015 Changed the location column in fire_stations.csv and police_stations.csv into two columns, latitude and longitude.
+2/6/2015 Manually removed problematic commas inside double quotes from some fields in parks.csv (comma_parser did not work because quotes were not balanced)
+2/6/2015 Manually removed double quotes from the following fields in parks.csv:
+2/6/2015 Changed location column in parks.csv intwo two columns, latidude and longitude.
+
+"HOUSTON (JESSIE ""MA"")"
+"SENKA (EDWARD ""DUKE"")"
+
+2/6/2016 bike_racks.csv, divvy_stations.csv, fire_stations.csv, parks.csv, police_stations.csv moved to Clean
+
