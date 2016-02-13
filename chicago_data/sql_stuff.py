@@ -11,6 +11,8 @@ d={
 "crimes":(crime_list,"crimes")
 }
 
+BOOLEANS={"false": 0, "true": 1}
+
 
 #my apartment lat/long
 my_lat=41.783213
@@ -50,33 +52,8 @@ def crimes(list_of_filenames):
             for row in reader:
                 if row==[]:
                     break
-                if row[4]=="false":
-                    arrest=0
-                elif row[4]=="true":
-                    arrest=1
-                else:
-                    arrest=None
-                if row[5]=="false":
-                    domestic=0
-                elif row[5]=="true":
-                    domestic=1
-                else:
-                    domestic=None
-                try:
-                    x_coord=int(row[11])
-                except:
-                    x_coord=row[11]
-                try:
-                    y_coord=int(row[12])
-                except:
-                    y_coord=row[12]
-                if row[-2]=="" or row[-1]=="":
-                    lat="" 
-                    lon=""
-                else:
-                    lat=row[-2]
-                    lon=row[-1]
-                data.append((row[0],row[1],row[2],row[3],arrest,domestic,row[6],row[7],row[8],row[9],row[10], x_coord, y_coord, lat, lon))
+                arrest,domestic=BOOLEANS[row[4]], BOOLEANS[row[5]]
+                data.append((row[0],row[1],row[2],row[3],arrest,domestic,row[6],row[7],row[8],row[9],row[10], row[11], row[12], row[13], row[14]))
 
     create_column_string=", ".join([i[0] + " " + i[1] for i in d["crimes"][0]])
     creation_string="CREATE TABLE crimes ("+create_column_string+");"
@@ -105,7 +82,7 @@ def test_crimes(lat,lon, distance, filename_list):
     cur.executemany(insertion_string, data)
     con.commit()
 
-    sqlstring='''SELECT date, primary_type, secondary_type FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
+    sqlstring='''SELECT block, primary_type, secondary_type, FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
      AND distance({},{}, crimes.long, crimes.lat)>=0;'''.format(lon, lat, distance, lon, lat)
     cur.execute(sqlstring)
     results=cur.fetchall()
