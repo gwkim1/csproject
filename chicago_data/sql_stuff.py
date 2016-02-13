@@ -1,6 +1,8 @@
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, pi
 import csv
 import sqlite3
+import os
+import re
 
 #dictionary with {filename: (tuple containing [list containing tuples of the form (name of column imported, data type)], name of table }
 
@@ -14,11 +16,14 @@ d={
 BOOLEANS={"false": 0, "true": 1}
 
 
-#my apartment lat/long
+
 my_lat=41.783213
 my_long=-87.601375
 
-def_path="/home/pdrjuarez/csproject/chicago_data/Clean/"
+CHICAGO_AREA=606100000
+project_path=re.search('(/[A-Za-z]+){3}', os.path.abspath(os.curdir)).group()
+data_folder="/chicago_data/Clean/"
+full_path=project_path+data_folder
 
 def haversine(lon1, lat1, lon2, lat2):
     '''
@@ -43,9 +48,8 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 
-###This is messy
 
-def crimes(list_of_filenames, path=def_path):
+def crimes(list_of_filenames, path=full_path):
     data=[]
     for filename in list_of_filenames:
         with open(path+filename) as f:
@@ -66,11 +70,11 @@ def crimes(list_of_filenames, path=def_path):
 
 ###test
 
-def test_crimes(lat,lon, distance, filename_list, path=def_path):
+def test_crimes(lat,lon, distance, filename_list, path=full_path):
+    prop_area=pi*distance**2/CHICAGO_AREA
     con=sqlite3.connect(":memory:")
     con.create_function("distance", 4, haversine)
     cur=con.cursor()
-
     cur.execute("CREATE TABLE IUCR_codes (code varchar(4), primary_type varchar(50), secondary_type varchar(50));")
     with open(path+"IUCR_codes.csv") as f:
         header=f.readline()
@@ -84,10 +88,11 @@ def test_crimes(lat,lon, distance, filename_list, path=def_path):
     cur.executemany(insertion_string, data)
     con.commit()
 
-    sqlstring='''SELECT COUNT(*) as cnt, primary_type, secondary_type FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
-     AND distance({},{}, crimes.long, crimes.lat)>=0 GROUP BY secondary_type ORDER BY cnt;'''.format(lon, lat, distance, lon, lat)
+    sqlstring='''SELECT crimes.long, crimes.lat, date, primary_type, secondary_type FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
+     AND distance({},{}, crimes.long, crimes.lat)>=0;'''.format(lon, lat, distance, lon, lat)
     cur.execute(sqlstring)
     results=cur.fetchall()
+    num_crimes=len(results)
     return results
 
 

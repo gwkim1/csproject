@@ -1,8 +1,10 @@
 from django.shortcuts import render
 import sys
-sys.path.insert(0, '/home/pdrjuarez/csproject/chicago_data')
-
-import sql_stuff
+import os
+import re
+project_path=re.search('(/[A-Za-z]+){3}', os.path.abspath(os.curdir)).group()
+sys.path.insert(0, project_path)
+import chicago_data.sql_stuff
 
 
 def about(request):
@@ -16,8 +18,7 @@ def homepage(request):
 	c['current_long']= request.POST.get('longitude', -87.601375)
 	c['current_lat']= request.POST.get('latitude', 41.783213)
 
-	#from django.conf import settings
-	#print(os.path.join(settings.BASE_DIR, '...'))
+	#validate the data
 
 	return render(request, 'search/home.html', c)
 
@@ -26,8 +27,7 @@ def results(request):
 	lon = float(request.POST.get('longitude', -87.601375))
 	lat = float(request.POST.get('latitude', -41.783213))
 	print(distance, lon, lat)
-	def_path="/home/pdrjuarez/csproject/chicago_data/Clean/"
-	results=sql_stuff.test_crimes(lat, lon, distance, ["crimes_2013.csv", "crimes_2014.csv", "crimes_2015.csv"], def_path)
+	results=chicago_data.sql_stuff.test_crimes(lat, lon, distance, ["crimes_2013.csv", "crimes_2014.csv", "crimes_2015.csv"])
 	c={'results': results}
 	return render(request, 'search/results.html', c)
 
