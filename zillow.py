@@ -56,11 +56,38 @@ def get_soup(url):
 	return bs4.BeautifulSoup(str_response, "lxml")
 
 
+
+# parts of the find_all and print command according to each output that we want to get
+COMMAND_DICT = {
+"address": ["'span', {'itemprop': 'streetAddress'}", "result.text"],
+"latlong": ["'meta', {'itemprop': re.compile(r'^(latitude|longitude)$)}", "result['content']"],
+"house/listing": [],
+"price": ["'dt', {'class': 'price-large'}", "result.text"],
+"bedroom": ["'span', {'class': 'beds-baths-sqft'}", "result.text"],
+"bathroom": ["", ""], # same thing
+"size": ["", ""], # same thing
+"built_year": ["'span', {'class': 'built-year'}", "result.text"],
+"days_on_zillow": ["'dt', {'class': 'doz'}", "result.text"],
+}
+
 def get_house_info(soup, output_info = []):
 	houses = soup.find_all("div", {"class": "property-info"})
-
 	# we may want address, latlong, house/listing, price, bedroom, bathroom, size, built_year, days on zillow
-
+	# For each house
+	for house in houses:
+		#print(house)
+		result_list = []
+		# For each output information that the user wants
+		for info in output_info:
+			#print(info)
+			#print(COMMAND_DICT[info])
+			# Append the result into result_list
+			#print(COMMAND_DICT[info][0])
+			##########Why isn't this working?
+			resultset = soup.find_all(COMMAND_DICT[info][0])
+			print(resultset)
+			result_list.append(resultset)
+	return result_list
 '''
 for prop in prop_info:
     results = prop.find_all("span", {"itemprop": re.compile(r"^(streetAddress|addressRegion)$")})
@@ -68,24 +95,8 @@ for prop in prop_info:
         print(result.text)
 '''
 
-# parts of the find_all and print command according to each output that we want to get
-command_dict = {
-"address": ["('span', {'itemprop': 'streetAddress')})", "result.text"]
-"latlong": ["('meta', {'itemprop': re.compile(r'^(latitude|longitude)$)})", "result['content']"]
-"house/listing": []
-"price": []
-"bedroom": []
-"bathroom": []
-"size": []
-"built_year": []
-"days_on_zillow": []
-}
 
-	# For each house
-	for house in houses:
-		result_list = []
-		# For each output information that the user wants
-		for info in output_info:
-			# Append the result into result_list
+
+
 
 
