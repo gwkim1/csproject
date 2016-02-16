@@ -1,6 +1,8 @@
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, pi
 import csv
 import sqlite3
+import os
+import re
 
 #dictionary with {filename: (tuple containing [list containing tuples of the form (name of column imported, data type)], name of table }
 
@@ -11,10 +13,17 @@ d={
 "crimes":(crime_list,"crimes")
 }
 
+BOOLEANS={"false": 0, "true": 1}
 
-#my apartment lat/long
+
+
 my_lat=41.783213
 my_long=-87.601375
+
+CHICAGO_AREA=606100000
+project_path=re.search('(/[A-Za-z]+){3}', os.path.abspath(os.curdir)).group()
+data_folder="/chicago_data/Clean/"
+full_path=project_path+data_folder
 
 def haversine(lon1, lat1, lon2, lat2):
     '''
@@ -39,44 +48,18 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 
-###This is messy
 
-def crimes(list_of_filenames):
+def crimes(list_of_filenames, path=full_path):
     data=[]
     for filename in list_of_filenames:
-        with open("Clean/"+filename) as f:
+        with open(path+filename) as f:
             header=f.readline()
             reader=csv.reader(f, delimiter=",")
             for row in reader:
                 if row==[]:
                     break
-                if row[4]=="false":
-                    arrest=0
-                elif row[4]=="true":
-                    arrest=1
-                else:
-                    arrest=None
-                if row[5]=="false":
-                    domestic=0
-                elif row[5]=="true":
-                    domestic=1
-                else:
-                    domestic=None
-                try:
-                    x_coord=int(row[11])
-                except:
-                    x_coord=row[11]
-                try:
-                    y_coord=int(row[12])
-                except:
-                    y_coord=row[12]
-                if row[-2]=="" or row[-1]=="":
-                    lat="" 
-                    lon=""
-                else:
-                    lat=row[-2]
-                    lon=row[-1]
-                data.append((row[0],row[1],row[2],row[3],arrest,domestic,row[6],row[7],row[8],row[9],row[10], x_coord, y_coord, lat, lon))
+                arrest,domestic=BOOLEANS[row[4]], BOOLEANS[row[5]]
+                data.append((row[0],row[1],row[2],row[3],arrest,domestic,row[6],row[7],row[8],row[9],row[10], row[11], row[12], row[13], row[14]))
 
     create_column_string=", ".join([i[0] + " " + i[1] for i in d["crimes"][0]])
     creation_string="CREATE TABLE crimes ("+create_column_string+");"
@@ -87,13 +70,13 @@ def crimes(list_of_filenames):
 
 ###test
 
-def test_crimes(lat,lon, distance, filename_list):
+def test_crimes(lat,lon, distance, filename_list, path=full_path):
+    prop_area=pi*distance**2/CHICAGO_AREA
     con=sqlite3.connect(":memory:")
     con.create_function("distance", 4, haversine)
     cur=con.cursor()
-
     cur.execute("CREATE TABLE IUCR_codes (code varchar(4), primary_type varchar(50), secondary_type varchar(50));")
-    with open("Clean/IUCR_codes.csv") as f:
+    with open(path+"IUCR_codes.csv") as f:
         header=f.readline()
         reader=csv.reader(f, delimiter=",")
         codes_data=[(row[0], row[1], row[2]) for row in reader if row!=[]]
@@ -105,10 +88,11 @@ def test_crimes(lat,lon, distance, filename_list):
     cur.executemany(insertion_string, data)
     con.commit()
 
-    sqlstring='''SELECT date, primary_type, secondary_type FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
+    sqlstring='''SELECT crimes.long, crimes.lat, date, primary_type, secondary_type FROM IUCR_codes JOIN crimes ON IUCR_codes.code=crimes.code WHERE distance({},{}, crimes.long, crimes.lat)<={}
      AND distance({},{}, crimes.long, crimes.lat)>=0;'''.format(lon, lat, distance, lon, lat)
     cur.execute(sqlstring)
     results=cur.fetchall()
+    num_crimes=len(results)
     return results
 
 
