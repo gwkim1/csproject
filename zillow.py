@@ -26,7 +26,7 @@ def create_url(zipcode, listing_type = [], price_range = (0, 0), min_bedroom = 0
 	if min_bedroom > 0 and min_bedroom < 7:
 		base_url += str(min_bedroom) + "-_beds/"
 	if min_bathroom > 0 and min_bathroom < 7:
-		base_url += str(min_bathroom) + "-_baths/"
+		base_url += str(min_bathroom) + "-_baths/" 
 
 	if not (size_range[0] == 0 and size_range[1] == 0):
 		base_url += str(size_range[0]) + "-" + str(size_range[1]) + "_size/"		
@@ -83,8 +83,3 @@ def get_house_info(soup, output_info = []):
 			#print(resultset)
 			final_result.append(result_list)
 	return final_result
-
-
-
-
-
