@@ -2,25 +2,8 @@
 import bs4
 import urllib.parse
 import urllib.request
+import re
 
-'''
-def get_soup():
-	# This is the ZWSID I got for my account. 1000 daily max query
-	ZWSID = "X1-ZWz1f5eb856eq3_23up5"
-	
-	Below is an example of calling the API for the address for the exact address match "2114 Bigelow Ave", "Seattle, WA": 
-	http://www.zillow.com/webservice/GetSearchResults.htm?zws-id=<ZWSID>&address=2114+Bigelow+Ave&citystatezip=Seattle%2C+WA
-	
-
-
-
-	url = "http://www.zillow.com/webservice/GetSearchResults.htm?zws-id=X1-ZWz1f5eb856eq3_23up5&address=2114+Bigelow+Ave&citystatezip=Seattle%2C+WA"
-	r = requests.get(url)
-	txt = r.text
-	soup = bs4.BeautifulSoup(txt, "lxml")
-
-	return soup
-'''
 
 URL = "http://www.zillow.com/homes/for_sale/Chicago-IL-60615/84617_rid/1-_beds/50000-60400_price/178-215_mp/any_days/built_sort/41.81521,-87.554469,41.794992,-87.63824_rect/13_zm/"
 
@@ -28,6 +11,7 @@ URL = "http://www.zillow.com/homes/for_sale/Chicago-IL-60615/84617_rid/1-_beds/5
 def create_url(zipcode, listing_type = [], price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_type = [], size_range = (0, 0)):
 	'''
 	zipcode: zipcode
+	For listing_type and house_type the following are the options(put in as string)
 	listing_type: sale, rent, potential listings, recently sold
 	house_type: houses, apartments, condos/co-ops, townhomes, manufactured, lots/land
 	'''
@@ -59,24 +43,28 @@ def get_soup(url):
 
 # parts of the find_all and print command according to each output that we want to get
 COMMAND_DICT = {
-"address": ["'span', {'itemprop': 'streetAddress'}", "result.text"],
-"latlong": ["'meta', {'itemprop': re.compile(r'^(latitude|longitude)$)}", "result['content']"],
+"address": ['span', {'itemprop': 'streetAddress'}],
+"latlong": ['meta', {'itemprop': re.compile(r'^(latitude|longitude)$')}],
 "house/listing": [],
-"price": ["'dt', {'class': 'price-large'}", "result.text"],
-"bedroom": ["'span', {'class': 'beds-baths-sqft'}", "result.text"],
-"bathroom": ["", ""], # same thing
-"size": ["", ""], # same thing
-"built_year": ["'span', {'class': 'built-year'}", "result.text"],
-"days_on_zillow": ["'dt', {'class': 'doz'}", "result.text"],
+"price": ['dt', {'class': 'price-large'}],
+"bedroom": ['span', {'class': 'beds-baths-sqft'}],
+"bathroom": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"size": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"built_year": ['span', {'class': 'built-year'}],
+"days_on_zillow": ['dt', {'class': 'doz'}],
 }
 
 def get_house_info(soup, output_info = []):
+	'''
+	As output_info, put the key of the COMMAND_DICT above.
+	'''
 	houses = soup.find_all("div", {"class": "property-info"})
 	# we may want address, latlong, house/listing, price, bedroom, bathroom, size, built_year, days on zillow
 	# For each house
+	final_result = []
 	for house in houses:
 		#print(house)
-		result_list = []
+		result_list = [house.find("span", {'itemprop': 'streetAddress'}).text]
 		# For each output information that the user wants
 		for info in output_info:
 			#print(info)
@@ -84,17 +72,17 @@ def get_house_info(soup, output_info = []):
 			# Append the result into result_list
 			#print(COMMAND_DICT[info][0])
 			##########Why isn't this working?
-			resultset = soup.find_all(COMMAND_DICT[info][0])
-			print(resultset)
-			result_list.append(resultset)
-	return result_list
-'''
-for prop in prop_info:
-    results = prop.find_all("span", {"itemprop": re.compile(r"^(streetAddress|addressRegion)$")})
-    for result in results:
-        print(result.text)
-'''
-
+			resultset = house.find_all(COMMAND_DICT[info][0], COMMAND_DICT[info][1])
+			for result in resultset:
+				if info == "latlong":
+					result_list.append(result["content"])
+				else:
+					result_list.append(result.text)
+			#print(type(COMMAND_DICT[info][0]))
+			#print(COMMAND_DICT[info[0]])
+			#print(resultset)
+			final_result.append(result_list)
+	return final_result
 
 
 
