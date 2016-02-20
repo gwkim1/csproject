@@ -5,6 +5,21 @@ import urllib.request
 import re
 
 
+class House:
+	# Need to work more on this
+	def __init__(self, property_info):
+		self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
+		# add other information
+	
+
+
+
+
+
+
+
+
+
 URL = "http://www.zillow.com/homes/for_sale/Chicago-IL-60615/84617_rid/1-_beds/50000-60400_price/178-215_mp/any_days/built_sort/41.81521,-87.554469,41.794992,-87.63824_rect/13_zm/"
 
 
