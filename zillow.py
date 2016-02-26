@@ -6,19 +6,36 @@ import re
 
 
 
-
 class House:
 	# Need to work more on this
 	def __init__(self, property_info):
 		self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
-		self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
+		
+		if property_info.find('dt', {'class': 'price-large'}) == None:
+			self.price = eval(property_info.find('dt', {'class': 'zestimate'}).text[20:-1]) * 1000
+		elif type(property_info.find('dt', {'class': 'price-large'}).text[0]) == int:
+			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
+		else:
+			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text[6:-1]) * 1000
+
 		self.doz = eval(property_info.find('dt', {'class': 'doz'}).text.split(" ")[0])
-		self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
+		
+		if property_info.find('span', {'class': 'built-year'}) != None:
+			self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
+		else:
+			# This is problematic. Need to change to None later
+			self.built_year = 0
 
 		beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
 		self.bedroom = eval(beds_baths_sqft[0])
 		self.bathroom = eval(beds_baths_sqft[3])
-		self.size = eval(beds_baths_sqft[6].replace(",", ""))
+		
+		if len(beds_baths_sqft) >= 6:
+			self.size = eval(beds_baths_sqft[6].replace(",", ""))
+		else:
+			# This is problematic. Same.
+			self.size = 0
+
 		self.lat = eval(property_info.find('meta', {'itemprop': 'latitude'})["content"])
 		self.long = eval(property_info.find('meta', {'itemprop': 'longitude'})["content"])
 		self.info_dict = {"price" : self.price, "days_on_zillow" : self.doz, "built_year" : self.built_year, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
@@ -72,6 +89,27 @@ def get_soup(url):
 	return bs4.BeautifulSoup(str_response, "lxml")
 
 
+def create_house_objects(soup):
+	'''
+	many codes repeated with get_house_info, but we'll deal with this later
+	'''
+	house_articles = soup.find_all("article", {"class": "property-listing"})
+	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
+	
+	for similar_house in similar_house_articles:
+		house_articles.remove(similar_house)
+
+	if len(house_articles) >= 50:
+		print("too many search results: try to add conditions")
+		return
+
+	house_list = []
+	for house_article in house_articles:
+		property_info = house_article.find("div", {'class': 'property-info'})
+		house_list.append(House(property_info))
+	return house_list
+
+
 
 # parts of the find_all and print command according to each output that we want to get
 COMMAND_DICT = {
@@ -85,6 +123,9 @@ COMMAND_DICT = {
 "built_year": ['span', {'class': 'built-year'}],
 "days_on_zillow": ['dt', {'class': 'doz'}],
 }
+
+
+
 
 def get_house_info(soup, output_info = []):
 	'''
@@ -135,3 +176,4 @@ def get_house_info(soup, output_info = []):
 		final_result.append(result_list)
 	
 	return final_result
+

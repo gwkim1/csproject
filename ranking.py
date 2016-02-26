@@ -27,21 +27,35 @@ def create_array(house_list, criteria_list):
     
     score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
     
+    need_to_delete = set()
+
+    #score_array = np.delete(score_array, i, 0)
+    #del house_list[i]
+    
     for i in range(len(house_list)):
         for j in range(len(criteria_list)):
             if type(criteria_dict[j][1]) == str:
-                # This obviously does not work. how to fix this problem?
                 if not house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]:
                     # array only accepts numbers!!! need to change this default value
-                    score_array[i][j] = -1
+                    #score_array[i][j] = -1
+                    need_to_delete.add(i)
+                    
             else:
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
-                    score_array[i][j] = -1   
+                    need_to_delete.add(i)  
     
-    return score_array
+    for i in need_to_delete:
+        score_array = np.delete(score_array, i, 0)
+        del house_list[i]        
 
+    return score_array
+    
 
 IDEAL_VALUE = {}
+
+
+
+
 
 
 def calculate_preference(array, house_list, criteria_list):
@@ -63,9 +77,12 @@ def calculate_preference(array, house_list, criteria_list):
             
 
             if type(criteria_list[col][1]) in [int, float]:
+                # pref_value is the score
                 pref_value = house_list[row].info_dict[criteria_list[col][0]]
             else:
-                pref_value =   len(criteria_list[col]) - ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
+                # prbly consider case in which the value in a cell is 0, not a string.
+
+                pref_value =   len(criteria_list[col]) #- ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
 
 
             print("pref:", pref_value, "indif:", indifference, "pref:", preference)
@@ -78,12 +95,16 @@ def calculate_preference(array, house_list, criteria_list):
     return array 
 
 
+def get_weighted_score(score_array, weight_array):
+    return np.dot(score_array, weight_array)
+
+'''
 def get_weighted_score(array, weight_list, house_list):
-    '''
+    
     return a list of weighted scores for each house
 
     NOT SURE whether I should return a score_list or just store the score in House object.
-    '''
+    
     score_list = []
     for row in range(len(array)):
         score = 0
@@ -92,3 +113,4 @@ def get_weighted_score(array, weight_list, house_list):
         score_list.append(score)
         house_list[row].weighted_score = score
     return score_list
+'''
