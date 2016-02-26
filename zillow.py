@@ -5,14 +5,48 @@ import urllib.request
 import re
 
 
+
 class House:
 	# Need to work more on this
 	def __init__(self, property_info):
 		self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
-		# add other information
-	
+		
+		if property_info.find('dt', {'class': 'price-large'}) == None:
+			self.price = eval(property_info.find('dt', {'class': 'zestimate'}).text[20:-1]) * 1000
+		elif type(property_info.find('dt', {'class': 'price-large'}).text[0]) == int:
+			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
+		else:
+			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text[6:-1]) * 1000
+
+		self.doz = eval(property_info.find('dt', {'class': 'doz'}).text.split(" ")[0])
+		
+		if property_info.find('span', {'class': 'built-year'}) != None:
+			self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
+		else:
+			# This is problematic. Need to change to None later
+			self.built_year = 0
+
+		beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
+		self.bedroom = eval(beds_baths_sqft[0])
+		self.bathroom = eval(beds_baths_sqft[3])
+		
+		if len(beds_baths_sqft) >= 6:
+			self.size = eval(beds_baths_sqft[6].replace(",", ""))
+		else:
+			# This is problematic. Same.
+			self.size = 0
+
+		self.lat = eval(property_info.find('meta', {'itemprop': 'latitude'})["content"])
+		self.long = eval(property_info.find('meta', {'itemprop': 'longitude'})["content"])
+		self.info_dict = {"price" : self.price, "days_on_zillow" : self.doz, "built_year" : self.built_year, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
+		
+		self.weighted_score = 0
+		# Did everything except for house listing
 
 
+
+	def return_info(self, info_string):
+		pass
 
 
 
@@ -55,6 +89,27 @@ def get_soup(url):
 	return bs4.BeautifulSoup(str_response, "lxml")
 
 
+def create_house_objects(soup):
+	'''
+	many codes repeated with get_house_info, but we'll deal with this later
+	'''
+	house_articles = soup.find_all("article", {"class": "property-listing"})
+	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
+	
+	for similar_house in similar_house_articles:
+		house_articles.remove(similar_house)
+
+	if len(house_articles) >= 50:
+		print("too many search results: try to add conditions")
+		return
+
+	house_list = []
+	for house_article in house_articles:
+		property_info = house_article.find("div", {'class': 'property-info'})
+		house_list.append(House(property_info))
+	return house_list
+
+
 
 # parts of the find_all and print command according to each output that we want to get
 COMMAND_DICT = {
@@ -69,16 +124,35 @@ COMMAND_DICT = {
 "days_on_zillow": ['dt', {'class': 'doz'}],
 }
 
+
+
+
 def get_house_info(soup, output_info = []):
 	'''
 	As output_info, put the key of the COMMAND_DICT above.
 	'''
-	houses = soup.find_all("div", {"class": "property-info"})
+	house_articles = soup.find_all("article", {"class": "property-listing"})
+	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
+	
+	for similar_house in similar_house_articles:
+		house_articles.remove(similar_house)
+
+	if len(house_articles) >= 50:
+		print("too many search results: try to add conditions")
+		return
+		# And this should automatically lead back to create_url
+
+	#house_articles.difference_update(similar_house_articles)
 	# we may want address, latlong, house/listing, price, bedroom, bathroom, size, built_year, days on zillow
 	# For each house
+	
+	
 	final_result = []
-	for house in houses:
+	for house_article in house_articles:
+		house = house_article.find("div", {'class': 'property-info'})
 		#print(house)
+		#print(house.find("span", {'itemprop': 'streetAddress'}).text)
+		#print(house.find("span", {'itemprop': 'streetAddress'}).text)
 		result_list = [house.find("span", {'itemprop': 'streetAddress'}).text]
 		# For each output information that the user wants
 		for info in output_info:
@@ -91,10 +165,15 @@ def get_house_info(soup, output_info = []):
 			for result in resultset:
 				if info == "latlong":
 					result_list.append(result["content"])
+				
+
+
 				else:
 					result_list.append(result.text)
 			#print(type(COMMAND_DICT[info][0]))
 			#print(COMMAND_DICT[info[0]])
 			#print(resultset)
-			final_result.append(result_list)
+		final_result.append(result_list)
+	
 	return final_result
+
