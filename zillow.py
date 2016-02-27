@@ -5,20 +5,29 @@ import urllib.request
 import re
 
 
-
 class House:
 	# Need to work more on this
 	def __init__(self, property_info):
 		self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
 		
 		if property_info.find('dt', {'class': 'price-large'}) == None:
-			self.price = eval(property_info.find('dt', {'class': 'zestimate'}).text[20:-1]) * 1000
-		elif type(property_info.find('dt', {'class': 'price-large'}).text[0]) == int:
-			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
+			# Need to check this once
+			self.price = extract_numbers(property_info.find('dt', {'class': 'zestimate'}).text) * 1000
+		elif property_info.find('dt', {'class': 'price-large'}).text[0] == "$":
+			#self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
+			self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
 		else:
-			self.price = eval(property_info.find('dt', {'class': 'price-large'}).text[6:-1]) * 1000
+			self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text) * 1000
+			#self.price = 0
 
-		self.doz = eval(property_info.find('dt', {'class': 'doz'}).text.split(" ")[0])
+		if property_info.find('dt', {'class': 'doz'}) == None:
+			self.doz = 0
+		else:
+			self.doz = extract_numbers(property_info.find('dt', {'class': 'doz'}).text)
+		#elif re.search(property_info.find('dt', {'class': 'doz'}).text[0], "[0-9]") == None:
+		#	self.doz = property_info.find('dt', {'class': 'doz'}).text[10]
+		#else:
+		#	self.doz = eval(property_info.find('dt', {'class': 'doz'}).text.split(" ")[0])
 		
 		if property_info.find('span', {'class': 'built-year'}) != None:
 			self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
@@ -43,18 +52,19 @@ class House:
 		self.weighted_score = 0
 		# Did everything except for house listing
 
-
-
-	def return_info(self, info_string):
-		pass
-
-
-
-
-
-
-
+# This is unnecessary. just for reference
 URL = "http://www.zillow.com/homes/for_sale/Chicago-IL-60615/84617_rid/1-_beds/50000-60400_price/178-215_mp/any_days/built_sort/41.81521,-87.554469,41.794992,-87.63824_rect/13_zm/"
+
+
+def extract_numbers(num_str):
+	num = ""
+	for letter in num_str:
+		if re.search("[0-9]", letter) != None:
+			num += letter
+	if len(num) > 0:
+		return eval(num)
+	else:
+		return None
 
 
 def create_url(zipcode, listing_type = [], price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_type = [], size_range = (0, 0)):
@@ -63,6 +73,7 @@ def create_url(zipcode, listing_type = [], price_range = (0, 0), min_bedroom = 0
 	For listing_type and house_type the following are the options(put in as string)
 	listing_type: sale, rent, potential listings, recently sold
 	house_type: houses, apartments, condos/co-ops, townhomes, manufactured, lots/land
+	-> for the url: house,apartment_duplex,condo,townhouse,mobile,land + need to add "_type"
 	'''
 	base_url = "http://www.zillow.com/homes/"
 	# Would hardcoding in Chicago and IL be okay?
@@ -80,6 +91,9 @@ def create_url(zipcode, listing_type = [], price_range = (0, 0), min_bedroom = 0
 	if not (size_range[0] == 0 and size_range[1] == 0):
 		base_url += str(size_range[0]) + "-" + str(size_range[1]) + "_size/"		
 
+	# need to work with listing_type and house_type
+
+
 	return base_url
 
 
@@ -96,6 +110,8 @@ def create_house_objects(soup):
 	house_articles = soup.find_all("article", {"class": "property-listing"})
 	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
 	
+	print(len(house_articles))
+
 	for similar_house in similar_house_articles:
 		house_articles.remove(similar_house)
 
@@ -104,8 +120,12 @@ def create_house_objects(soup):
 		return
 
 	house_list = []
+	print(len(house_articles))
 	for house_article in house_articles:
 		property_info = house_article.find("div", {'class': 'property-info'})
+		#print(property_info)
+		#house = House(property_info)
+		#print("House created")
 		house_list.append(House(property_info))
 	return house_list
 

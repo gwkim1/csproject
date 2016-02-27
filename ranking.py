@@ -8,9 +8,9 @@ def create_array(house_list, criteria_list):
 
     for now, the two arguments must look like:
     house_list: [House, House, House] House objects
-    criteria_list: [("price", 1000, 2000, None), ("house_type", "houses", "apartments", "condos/co-ops")]
-    for numerical criterion: (criterion name, lower bound, upper bound, ideal value)
-    for categorical criterion: (criterion name, first choice, second choice .... nth choice)
+    criteria_list: [("price", 1000, 2000, None, 300), ("house_type", "houses", "apartments", "condos/co-ops", 500)]
+    for numerical criterion: (criterion name, lower bound, upper bound, ideal value, weight)
+    for categorical criterion: (criterion name, first choice, second choice .... nth choice, weight)
 
     Output:
     returns a numpy array filled with either 0 or None
@@ -32,6 +32,7 @@ def create_array(house_list, criteria_list):
     #score_array = np.delete(score_array, i, 0)
     #del house_list[i]
     
+    
     for i in range(len(house_list)):
         for j in range(len(criteria_list)):
             if type(criteria_dict[j][1]) == str:
@@ -39,11 +40,21 @@ def create_array(house_list, criteria_list):
                     # array only accepts numbers!!! need to change this default value
                     #score_array[i][j] = -1
                     need_to_delete.add(i)
-                    
+                    print("house", i, "does not meet criterion", j)
             else:
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
+                    print("house", i, "does not meet criterion", j)
+                    print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
     
+    #print("need_to_delete:", need_to_delete)
+
+    if len(need_to_delete) != 0:
+        need_to_delete = list(need_to_delete)
+        need_to_delete.sort()
+        need_to_delete.reverse()
+    #print("need_to_delete:", need_to_delete)
+
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
         del house_list[i]        
@@ -95,22 +106,9 @@ def calculate_preference(array, house_list, criteria_list):
     return array 
 
 
-def get_weighted_score(score_array, weight_array):
+def get_weighted_score(score_array, criteria_list):
+    total_weight = 0
+    for ctuple in criteria_list:
+        total_weight += ctuple[-1]
+    weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
     return np.dot(score_array, weight_array)
-
-'''
-def get_weighted_score(array, weight_list, house_list):
-    
-    return a list of weighted scores for each house
-
-    NOT SURE whether I should return a score_list or just store the score in House object.
-    
-    score_list = []
-    for row in range(len(array)):
-        score = 0
-        for i in range(len(array[row])):
-            score += array[row][i] * weight_list[i]
-        score_list.append(score)
-        house_list[row].weighted_score = score
-    return score_list
-'''
