@@ -1,0 +1,23 @@
+{% load staticfiles %}
+
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{% static 'diary/main.css' %}">
+    <title>My website</title>
+</head>
+<body>
+    <a href="{% url 'start' %}">start</a> |
+    <a href="{% url 'about' %}">about</a>
+    <h1>My website 
+        {% if title %}
+        - {{ title|upper }}
+        {% endif %}
+    </h1>
+
+    {% block body %}
+
+    {% endblock %}
+
+</body>
+</html>
+
