@@ -1,8 +1,9 @@
 <html>
+
 <title> main page </title>
 <p> This is a main page. Our names are {{ names }}. You can learn more about us <a href="{% url 'about'%}"> here </a></p>
 
-<form method="post" action="{% url 'results' %}">
+<form method="post" action="{% url 'results_ph' %}">
 	{% csrf_token %}
 	<label for="latitude">Latitude: </label>
 	<input id="latitude" type="number" step="0.0000001" name="latitude" value="{{ current_lat }}">
@@ -19,7 +20,7 @@
 <head>
     <style type="text/css">
       html, body { height: 100%; margin: 0; padding: 0; }
-      #map { height: 100%; }
+      #map { height: 30%; width: 30%; }
     </style>
   </head>
   <body>

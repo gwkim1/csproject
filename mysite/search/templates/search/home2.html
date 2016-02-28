@@ -1,0 +1,69 @@
+<html>
+<title> main page </title>
+<p> <a href="{% url 'home2'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
+
+<form method="post" action="{% url 'results_ph' %}">
+	{% csrf_token %}
+	<label for="location">Location: </label>
+	<input id="location" name="location" value="{{ current_loc }}">
+	<label for="distance">Distance: </label>
+	<input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}">
+  <br><br>
+  <label for="house_type"> House Type: </label>
+  <select name="house_type">
+    <option id="house_type" name="house_type" value="houses">House</option>
+    <option id="house_type" name="house_type" value="apartments">Apartment</option>
+    <option id="house_type" name="house_type" value="Condo/Co-op">Condo/Co-op</option>
+  </select>
+  <label for="price_limit"> Price upper limit (monthly): </label>
+  <input id="price_limit" type="number" step="1" name="price_limit" value="{{ current_price_limit }}">
+  <br>
+  <p> Are you buying or renting?
+  <select name="listing_type">
+    <option id="listing_type" name="listing_type" value="sale"> Buying </option>
+    <option id="listing_type" name="listing_type" value="rent"> Renting </option>
+  </select></p>
+  <br>
+  <input type="submit" value="Search">
+</form>
+
+
+<head>
+    <style type="text/css">
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 30%; width: 30%; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+
+function initMap() {
+  var myLatLng = {lat: {{ current_lat }}, lng: {{ current_long }}};
+
+  // Create a map object and specify the DOM element for display.
+  var map = new google.maps.Map(document.getElementById('map'), {
+    center: myLatLng,
+    scrollwheel: false,
+    zoom: 18
+  });
+
+  // Create a marker and set its position.
+
+  var marker = new google.maps.Marker({
+    map: map,
+    position: myLatLng,
+    title: 'Pedro\'s House',
+    label: 'Basdf'
+  });
+}
+
+
+    </script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr6T8_7bIcbN1f4ntweV-iSTWreb0PtBI&callback=initMap">
+    </script>
+  </body>
+
+
+</html>
