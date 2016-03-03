@@ -43,7 +43,7 @@ class House:
 					longindex = latlong_str.find(letter)
 			self.lat = float(latlong_str[latindex+1:longindex])
 			self.long = float(latlong_str[longindex+1:])
-
+ 
 			# for lat and long, use something like this: prop[43].find("a", {"class": "routable"})["href"][-27:]
 			# and extract numbers from that
 			#self.lat = eval(property_info.find('meta', {'itemprop': 'latitude'})["content"])
