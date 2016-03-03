@@ -21,5 +21,8 @@ urlpatterns = [
     url(r'^results/', 'search.views.results', name="results"),
     url(r'^admin/', admin.site.urls),
     url(r'^home/', 'search.views.homepage', name="home"),
-    url(r'^about/', 'search.views.about', name="about")
+    url(r'^about/', 'search.views.about', name="about"),
+    url(r'^home2/', 'search.views.homepage2', name="home2"),
+    url(r'^results_ph/', 'search.views.results_ph', name="results_ph"),
+    url(r'^detailed_results/', 'search.views.detailed_results', name="detailed_results")
 ]
