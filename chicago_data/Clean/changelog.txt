@@ -12,4 +12,10 @@ February 2015, business_licenses.csv, crimes_2013.csv, crimes_2014.csv, crimes_2
 3/3/2016, removed the following columns from crimes_2013, crimes_2014, crimes_2015: [Arrest, Domestic, Beat, District, Ward, Community Area, FBI Code, X Coordinate, Y Coordinate, Block]
 3/3/2016, removed rows with empty fields in crimes_2013, crimes_2014, crimes_2015
 3/3/2016, added crimes_2016.csv, did the same things to it as I did to the others.
+3/4/2016 removed the following columns from divvy_stations.csv: [Status, Docks in Service, ID]
+3/4/2016, removed the following columns from bike_racks.csv: [RackID, Address, Ward, Community Area, Community Name, Historical]
+3/4/2016, removed the following columns from police_stations.csv: [Location, zip, State, City, DIstrict, website, phone, TTY]
+3/4/2016, removed the following columns from fire_stations.csv: [Name, City, State, Zip, Engine]
+3/4/2016, added police/fire tags to police_stations and fire_stations
+
 

@@ -13,7 +13,7 @@ def change_date_column(filename):
 		header=f.readline()
 		g.write(header)
 		readerf=csv.reader(f,delimiter=",")
-		#if AM and Hour=12, Hour=00
+		#if AM and Hour==12, Hour=00
 		#If PM and Hour!=12, Hour+=12
 		for row in readerf:
 			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})", row[0])
@@ -88,10 +88,7 @@ def check_columns(filename):
 		count=0
 		for row in reader:
 			count+=1
-			try:
-				assert columns==len(row)
-			except AssertionError:
-				print ("row {} had {} lines, expected {}".format(count, len(row), columns))
+			assert columns==len(row), "row {} had {} lines, expected {}".format(count, len(row, columns))
 
 def fix_codes(n, filename):
 	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row, specified as an input
@@ -177,6 +174,27 @@ def get_header(filename):
 	with open(data_folder+filename, "r") as f:
 		reader=csv.reader(f, delimiter=",")
 		return next(reader)
+
+
+def clean_crime_csv(filename):
+	'''Runs a sequence of functions above, which was originally run for all crime files
+	Makes my job easier when I redownload an updated crimes_2016.csv.
+	Please run ./comma_parser.sh crimes_2016.csv BEFORE running this'''
+	keep_these_columns=["Date", "IUCR", "Location Description", "Latitude", "Longitude"]
+	header=get_header(filename)
+	n=header.index("IUCR")
+	cols_to_remove=[j for j in header if j not in keep_these_columns]
+	try:
+		check_columns(filename)
+		fix_codes(n, filename)
+		check_codes(filename)
+		add_crime_codes(filename)
+		remove_columns(filename, cols_to_remove)
+		remove_entries_with_empty_fields(filename)
+		change_date_column(filename)
+	except:
+		print("something went wrong. Sorry!")
+	
 
 if __name__=="__main__":
 	pass
