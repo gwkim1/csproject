@@ -1,3 +1,1 @@
-Turn Block column in sex_offenders.csv into two approximate(?) lat/long columns
-
-Remove unneeded columns from: business_licenses.csv (very large)
+Donezo
