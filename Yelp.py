@@ -11,6 +11,7 @@ TOKEN = "1pRf9RrQKu7xdpkePMkAAbrCV9E-zr7W"
 TOKEN_SECRET = "59dHWliuAzv5wyOMFDtW57u_GiM"
 # In Meters
 WALKING_DISTANCE = 1000
+CATEGORIES = ["restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
 
 # Second Set of API keys just in case
 #Consumer_Key2 =   "nPpvHrRlTBQGMWrb4eOeLQ"
@@ -44,9 +45,7 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter):
   radius_filter(in meters, mac value is 40000)
   deals_filter
   '''
-
   params = {}
-  
   params["ll"] = "{},{}".format(str(lat),str(long))
   params["radius_filter"] = radius
   if term != "":
@@ -58,11 +57,11 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter):
   return params
 
 
-def get_score(locations, category_filter):
+def get_score(locations, category_filter, radius):
   location_raw_scores = []
   for location in locations:
     # Yelp only gives 20 results maximum per request, so it must be offset to get all of the results
-    count, results = search(location, category_filter = category_filter, count = True)
+    count, results = search(location, category_filter = category_filter, count = True, radius = radius)
     if count == 0:
       score = 0 
     else:
@@ -70,7 +69,7 @@ def get_score(locations, category_filter):
         iterations = math.ceil(count/20)-1
         offset = 20
         for i in range(iterations):
-          additional_result = search(location, category_filter = category_filter, offset = offset)
+          additional_result = search(location, category_filter = category_filter, offset = offset, radius = radius)
           offset+=20
           results+=additional_result
       score = 0
@@ -78,19 +77,26 @@ def get_score(locations, category_filter):
       for result in results:
         score += result["rating"]
     location_raw_scores.append(score)
-    #iterations = first_20_results["total"]/20
-    #print (iterations)
+
   
   max_score = 0
   for score in location_raw_scores:
     if score > max_score:
       max_score = score
+  if max_score == 0:
+    new_scores [0]*len(location_raw_scores)
   new_scores = [x / max_score for x in location_raw_scores]
   return new_scores
-  
 
-
-
+def get_yelp_scores(locations, distance, preferences):
+  score_list_category = []
+  for i in range(len(CATEGORIES)):
+    if preferences[i] == 0:
+      score_list_category.append([0]*len(locations))
+    else:
+      score_list_category.append(get_score(locations, CATEGORIES[i], distance))
+  score_list_location = list(map(list, zip(*score_list_category)))
+  return score_list_location
 
 
 
@@ -123,9 +129,6 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
   if count:
     return api_call["total"], results
   return results
-
-
-  
 
 
 
