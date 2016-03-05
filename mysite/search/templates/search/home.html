@@ -1,19 +1,46 @@
 <html>
-
 <title> main page </title>
-<p> This is a main page. Our names are {{ names }}. You can learn more about us <a href="{% url 'about'%}"> here </a></p>
+<p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
 
-<form method="post" action="{% url 'results_ph' %}">
+<form method="post" action="{% url 'results' %}">
 	{% csrf_token %}
-	<label for="latitude">Latitude: </label>
-	<input id="latitude" type="number" step="0.0000001" name="latitude" value="{{ current_lat }}">
-	<label for="longitude"> Longitude: </label>
-	<input id="longitude" type="number" step="0.0000001" name="longitude" value="{{ current_long }}">
-	<label for="distance">Distance: </label>
+	<label for="location">Location: </label>
+	<input id="location" name="location" value="{{ current_loc }}">
+	<label for="distance">As a user, how do you define nearby? (in meters)</label>
 	<input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}">
-	<input type="submit" value="OK">
-
-
+  <br><br>
+  <label for="house_type"> House Type: </label>
+  <select name="house_type">
+    <option id="house_type" name="house_type" value="houses">House</option>
+    <option id="house_type" name="house_type" value="apartments">Apartment</option>
+    <option id="house_type" name="house_type" value="Condo/Co-op">Condo/Co-op</option>
+  </select>
+  <label for="price_limit"> Price upper limit (monthly): </label>
+  <input id="price_limit" type="number" step="1" name="price_limit" value="{{ current_price_limit }}">
+  <br>
+  <label for "min_bathroom"> Minimum number of bathrooms: </label>
+  <input id="min_bathroom" type="number" step="1" name="min_bathroom" value="{{ current_min_bathroom }}">
+  <label for "min_bedroom"> Minimum number of bedrooms: </label>
+  <input id="min_bedroom" type="number" step="1" name="min_bedroom" value="{{ current_min_bedroom }}">
+  <p> Are you buying or renting?
+  <select name="listing_type">
+    <option id="listing_type" name="listing_type" value="sale"> Buying </option>
+    <option id="listing_type" name="listing_type" value="rent"> Renting </option>
+  </select></p>
+  Select how much you care about the following:
+  <ul>
+    {% for question in survey %}
+    <li>{{ question.0 }}</li><br>
+    <input type="radio" name="pref_{{ question.1 }}" value="0"> Not at all
+    <input type="radio" name="pref_{{ question.1 }}" value="0.25"> A little
+    <input type="radio" name="pref_{{ question.1 }}" value="0.5"> Neutral
+    <input type="radio" name="pref_{{ question.1 }}" value="0.75"> Important
+    <input type="radio" name="pref_{{ question.1 }}" value="1"> Very important<br><br>
+    {% endfor %}
+  </ul>  
+  <label for"time"> For crime data, select a starting date, in YYYY-MM-DD format (Warning, Dates earlier than 2015-01-01 will take a long time) </label>
+  <input id="time" name="time", value="{{ default_date }}"><br>
+  <input type="submit" value="Search">
 </form>
 
 

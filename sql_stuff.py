@@ -1,4 +1,4 @@
-from math import radians, cos, sin, asin, sqrt, pi
+from math import radians, cos, sin, asin, sqrt, pi, e
 import csv
 import sqlite3
 import os
@@ -38,20 +38,23 @@ test_coordinates={"me": (41.783213,-87.601375), "low crime": (41.973047, -87.777
 
 sql_strings={"crimes":
                       {1: '''SELECT date, primary_type, secondary_type, longitude, latitude FROM IUCR_codes JOIN crimes 
-                             ON IUCR_codes.code=crimes.code WHERE (strftime('%s', 'now')-strftime('%s', date))<={} 
+                             ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) 
                              AND distance({},{}, latitude, longitude)<={};''',
 
-                       2: '''SELECT count(*) FROM crimes WHERE (strftime('%s', 'now')-strftime('%s',date))<={};'''},
+                       2: '''SELECT count(*) FROM crimes WHERE strftime('%s',date)>=strftime('%s', {});'''},
              "bike_racks":
                       {1: '''SELECT number, latitude, longitude FROM bike_racks WHERE distance({},{}, latitude, longitude)<={}''',
 
                        2: '''SELECT number FROM bike_racks'''},
              "fire_police":
-                      {1: '''SELECT address, latitude, longitude, type FROM fire_police WHERE distance({},{}, latitude, longitude)<={}''',
+                      {1: '''SELECT address, latitude, longitude FROM fire_police WHERE distance({},{}, latitude, longitude)<={} AND type={}''',
 
-                       2: '''SELECT type FROM bike_racks'''}}
-
-two_to_the_minusx=lambda x: (1/2)**x
+                       2: '''SELECT count(*) FROM fire_police WHERE type={}'''}}
+CRIME_TYPES=['ARSON','ASSAULT','BATTERY','BURGLARY','CONCEALED CARRY LICENSE VIOLATION','CRIM SEXUAL ASSAULT','CRIMINAL ABORTION','CRIMINAL DAMAGE',
+ 'CRIMINAL TRESPASS','DECEPTIVE PRACTICE','GAMBLING','HOMICIDE','HUMAN TRAFFICKING','INTERFERENCE WITH PUBLIC OFFICER','INTIMIDATION','KIDNAPPING',
+ 'LIQUOR LAW VIOLATION','MOTOR VEHICLE THEFT','NARCOTICS','NON - CRIMINAL','NON-CRIMINAL','NON-CRIMINAL (SUBJECT SPECIFIED)','OBSCENITY',
+ 'OFFENSE INVOLVING CHILDREN','OTHER NARCOTIC VIOLATION','OTHER OFFENSE','PROSTITUTION','PUBLIC INDECENCY','PUBLIC PEACE VIOLATION','RITUALISM',
+ 'ROBBERY','SEX OFFENSE','STALKING','THEFT', 'WEAPONS VIOLATION'] #weighting
 
 CHICAGO_AREA=606100000
 project_path=os.path.abspath(os.curdir)
@@ -76,6 +79,21 @@ def haversine(lat1, lon1, lat2, lon2):
     km = 6367 * c
     m = km * 1000
     return m
+
+def score_normalizer(x, tolerance=1.5, base=1.5):
+    '''Function used to turn scores from 0 to infinity into scores from 0 to 1, such that:
+         f(0)=1
+         lim_{x-->inf} f(x)=0
+         f is decreasing, and f>=0
+    Tolerance and base should be a floats bigger than 1. The values 1.5 and 1.5 produced reasonable numbers
+    A high tolerance value corresponds to small deviation between scores close to 0, but also makes it harsher on scores larger than 1
+    (e.g. score_normalizer(2, 2, 0.25)=0.95760, score_normalizer(2,2,2)=0.0625
+          score_normalizer(1, 2, 0.25)=0.8409, score_normalizer(1,2,2)=0.25)
+    Base is the reciprocal of what we want f(1) to be.
+    (i.e. score_normalizer(y, base, 1)=1/base)'''
+    assert tolerance>=1, "please make tolerance greater than 1"
+    assert base>=1, "please make base greater than 1"
+    return base**(-x**tolerance)
 
 def db_helper(list_of_filenames, table_name, path=csv_path):
     '''This is a function which takes in a list of filenames, a table_name for them. Returns the necessary
@@ -117,16 +135,27 @@ def create_db(labeled_filenames, database_name, path=csv_path):
         print ("done")
     con.commit()
 
-def search(time, lat, lon, distance, database_name, modifiers=[]): #violent crimes, property crimes, other crimes?
+def search(time, lat, lon, distance, database_name): 
     prop_area=pi*distance**2/CHICAGO_AREA
     con=sqlite3.connect(database_name)
     con.create_function("distance", 4, haversine)
     cur=con.cursor()
-    rv={}
+    rv=[]
     crime_results=crime_search(time, lat, lon, distance, cur)
-    rv["crimes"]={"results":crime_results[0], "score": two_to_the_minusx(crime_results[1]/prop_area)}
+    rv.append({"results":crime_results[0], "score": score_normalizer(x=crime_results[1]/prop_area)})
     bike_results=bike_search(lat,lon,distance,cur)
-    rv["bike_racks"]={"results": bike_results[0], "score": two_to_the_minusx(prop_area/bike_results[1])}
+    #rv.append({"results": bike_results[0], "score": score_normalizer(x=prop_area/bike_results[1])})
+    fire_police_results=fire_police_search(lat,lon,distance,cur)
+    if fire_police_results["fire"][1]==0:
+        rv.append({"results":fire_police_results["fire"][0], "score": 0})
+    else:
+        rv.append({"results":fire_police_results["fire"][0], "score": score_normalizer(x=prop_area/fire_police_results["fire"][1])})
+    if fire_police_results["police"][1]==0:
+        rv.append({"results":fire_police_results["police"][0], "score": 0})
+    else:
+        rv.append({"results":fire_police_results["police"][0], "score": score_normalizer(x=prop_area/fire_police_results["police"][1])})
+
+    #list of dictionaries, in order crimes, bike, fire, police
     return rv
 
 def crime_search(time, lat, lon, distance, cursor):
@@ -136,7 +165,8 @@ def crime_search(time, lat, lon, distance, cursor):
     total_crimes=cursor.fetchall()[0][0]
 
     if total_crimes==0:
-        return "Not enough results, please widen your time frame"
+        print("Not enough results, please widen your time frame")
+        return
 
     num_crimes=len(results)
     prop_crimes=num_crimes/total_crimes
@@ -148,7 +178,6 @@ def bike_search(lat, lon, distance, cursor):
     results=cursor.fetchall()
     cursor.execute(sql_strings["bike_racks"][2])
     total_results=cursor.fetchall()
-
     count, total_count=0,0
     for j in results:
         count+=j[0]
@@ -157,16 +186,35 @@ def bike_search(lat, lon, distance, cursor):
     prop_bike_racks=count/total_count
     return (results, prop_bike_racks)
 
+def fire_police_search(lat, lon, distance, cursor):
+    #not enough data points to use this well? not for ranking
+    cursor.execute(sql_strings["fire_police"][1].format(lat, lon, distance, '"F"'))
+    fire_results=cursor.fetchall()
+    cursor.execute(sql_strings["fire_police"][2].format('"F"'))
+    fire_total_results=cursor.fetchall()
+    cursor.execute(sql_strings["fire_police"][1].format(lat, lon, distance, '"P"'))
+    police_results=cursor.fetchall()
+    cursor.execute(sql_strings["fire_police"][2].format('"P"'))
+    police_total_results=cursor.fetchall()
 
 
-def ranking(args, database_name):
-    scores=search(args["time"], args["lat"], args["lon"], args["distance"], database_name, args["modifiers"])
-    rv={}
-    for j in scores:
-        rv[j]=scores[j]["score"]
+    prop_fire,prop_police=len(fire_results)/fire_total_results[0][0],len(police_results)/police_total_results[0][0]
+    
+    return {"fire":(fire_results, prop_fire), "police":(police_results, prop_police)}
+
+def ranking(houses, database_name, time, distance):
+    '''Houses is a list of tuples with lat, long pairs'''
+    rv=[]
+    for j in houses:
+        ###each item is a house, where each item inside the house is a ranking###
+        scores=search(time, j[0], j[1], distance, database_name)
+        rv.append([scores[0]["score"]])
     return rv
 
 
+
+
+[""]
 
 
 

@@ -80,7 +80,8 @@ def add_crime_codes(filename):
 
 
 def check_columns(filename):
-	'''checks a CSV file for the expected number of fields for each row based on the number of fields in the first row, assumed to be a header'''
+	'''checks a CSV file for the expected number of fields for each row based on the number of fields in the first row, assumed to be a header
+	also checks whether there are any commas inside fields.'''
 	with open(data_folder+filename) as f:
 		header=f.readline()
 		columns=len(header.split(","))
@@ -89,6 +90,8 @@ def check_columns(filename):
 		for row in reader:
 			count+=1
 			assert columns==len(row), "row {} had {} lines, expected {}".format(count, len(row, columns))
+			for j in row:
+				assert "," not in j, "row {} has a comma in field {}. Please run comma_parser and try again {}".format(row, j)
 
 def fix_codes(n, filename):
 	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row, specified as an input
@@ -117,12 +120,12 @@ def check_codes(filename):
 		headerf, headerg=f.readline(), g.readline()
 		readerg=csv.reader(g, delimiter=",")
 		for row in readerg:
-			assert row[0] not in d
+			assert row[0].strip() not in d, "found duplicate entry in IUCR codes {}".format(row[0])
 			d[row[0].strip()]=(row[1].strip(),row[2].strip())
 
 		readerf=csv.reader(f, delimiter=",")
 		for row in readerf:
-			assert d[row[4].strip()]==(row[5].strip(), row[6].strip())
+			assert d[row[4].strip()]==(row[5].strip(), row[6].strip()), "code {} is {},{} in crime file, but {},{} in IUCR codes".format( row[4].strip() , d[row[4].strip()][0] ,d[row[4].strip()][1] ,row[5].strip(),row[6].strip())
 
 def remove_columns(filename, columns_to_erase):
 	'''columns=list of column strings to remove. Checks header in filename given, assumed csv
@@ -146,12 +149,14 @@ def remove_columns(filename, columns_to_erase):
 			    new_row_string=",".join(new_row)
 			    g.write(new_row_string+"\n")
 			except:
-				assert row==[]
+				assert row==[], "row with unexpected length found"
 
 	os.remove(data_folder+filename)
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
 def turn_loc_into_latlong(filename):
+	'''Some csv files had a 'location' field with a latitude, longitude tuple inside, plus some extra information (address, city, state, zip)
+	This extracts the lat/long tuple and adds it to the file as two extra columns for each row, when available'''
 	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
 		reader=csv.reader(f, delimiter=",")
 		header=next(reader)
@@ -184,16 +189,13 @@ def clean_crime_csv(filename):
 	header=get_header(filename)
 	n=header.index("IUCR")
 	cols_to_remove=[j for j in header if j not in keep_these_columns]
-	try:
-		check_columns(filename)
-		fix_codes(n, filename)
-		check_codes(filename)
-		add_crime_codes(filename)
-		remove_columns(filename, cols_to_remove)
-		remove_entries_with_empty_fields(filename)
-		change_date_column(filename)
-	except:
-		print("something went wrong. Sorry!")
+	check_columns(filename)
+	fix_codes(n, filename)
+	check_codes(filename)
+	add_crime_codes(filename)
+	remove_columns(filename, cols_to_remove)
+	remove_entries_with_empty_fields(filename)
+	change_date_column(filename)
 	
 
 if __name__=="__main__":
