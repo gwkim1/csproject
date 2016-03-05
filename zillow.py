@@ -36,13 +36,27 @@ class House:
 			latlong_str = property_info.find("a", {"class": "routable"})["href"][-27:-4]
 			latindex = 0
 			longindex = 0
+			print(property_info.find("a", {"class": "routable"}))
+			print(latlong_str)
 			for letter in latlong_str:
 				if letter == "/":
 					latindex = latlong_str.find(letter)
 				elif letter == ",":
 					longindex = latlong_str.find(letter)
-			self.lat = float(latlong_str[latindex+1:longindex])
-			self.long = float(latlong_str[longindex+1:])
+			print(latlong_str[latindex+1:longindex])
+
+			print("string for lat", latindex, longindex, latlong_str[latindex+1:longindex])
+			print("string for long", latlong_str[longindex+1:])
+			# This MUST be fixed!!
+			if len(latlong_str) < (longindex + 1) or (latindex == 0 and longindex == 0):
+				self.lat = None
+				self.long = None				
+			elif re.search("[0-9]", latlong_str[latindex+1:longindex][0]) == None or re.search("[0-9]", latlong_str[longindex+1:][0]) == None:
+				self.lat = None
+				self.long = None
+			else:
+				self.lat = float(latlong_str[latindex+1:longindex])
+				self.long = float(latlong_str[longindex+1:])
  
 			# for lat and long, use something like this: prop[43].find("a", {"class": "routable"})["href"][-27:]
 			# and extract numbers from that
@@ -94,8 +108,8 @@ class House:
 		else:
 			self.listing = "for sale"
 
-		if property_info.find('meta', {'itemprop': 'latitude'}) == None:
-			print("this went wrong", property_info)
+		#if property_info.find('meta', {'itemprop': 'latitude'}) == None:
+		#	print("this went wrong", property_info)
 
 		self.info_dict = {"price" : self.price, "days_on_zillow" : self.doz, "built_year" : self.built_year, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
 		

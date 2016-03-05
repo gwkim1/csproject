@@ -1,6 +1,19 @@
 import numpy as np
 
+'''
+Ideas for improvement:
+1. May change the way of calculating the preferences if the result is not satisfactory for the user
+2. 
 
+
+
+What hasn't been done yet:
+1. tiebreaking?
+2. dealing with the "ideal value"
+'''
+
+
+# This also deletes houses that does not meet criteria from the original house_list
 def create_array(house_list, criteria_list):
     '''
     Creates a numpy array to store the scores for every house and every criterion
@@ -26,7 +39,9 @@ def create_array(house_list, criteria_list):
         criteria_dict[j] = criteria_list[j]
     
     score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
-    
+    #print("score_array", score_array)
+    #print(len(criteria_list))
+    #print(len(house_list))
     need_to_delete = set()
 
     #score_array = np.delete(score_array, i, 0)
@@ -65,10 +80,6 @@ def create_array(house_list, criteria_list):
 IDEAL_VALUE = {}
 
 
-
-
-
-
 def calculate_preference(array, house_list, criteria_list):
     '''
     NOTE
@@ -85,7 +96,6 @@ def calculate_preference(array, house_list, criteria_list):
             preference = 1    
 
         for row in range(len(house_list)):
-            
 
             if type(criteria_list[col][1]) in [int, float]:
                 # pref_value is the score
@@ -112,3 +122,31 @@ def get_weighted_score(score_array, criteria_list):
         total_weight += ctuple[-1]
     weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
     return np.dot(score_array, weight_array)
+
+# need tiebreaking + sorting along with house_list
+def show_ranking(weighted_array, house_list):
+    '''
+    Taking the array of weighted score and list of houses(that meet the criteria) as arguments,
+    returns a list of tuples sorted by score in descending order with
+    each tuple: (rank, house object, score)
+    '''
+    score_list = []
+    index = 0
+    for score in weighted_array:
+        score_list.append((score[0], index))
+        index += 1
+    score_list.sort()
+    score_list.reverse()
+
+    rank_list = []
+    for score_tuple in score_list:
+        # This if statement can probably be reduced to something simpler
+        if len(rank_list) == 0:
+            rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+        elif score_tuple[0] == rank_list[-1][2]:
+            print(rank_list[-1][0])
+            rank_list.append((rank_list[-1][0], house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+        else:
+            rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+
+    return rank_list
