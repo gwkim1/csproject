@@ -39,7 +39,7 @@ def results(request):
 	time=request.POST.get("time")
 	preferences=[]
 	for j in range(1,11):
-		preferences.append(request.POST.get("pref_"+str(j)))
+		preferences.append(float(request.POST.get("pref_"+str(j))))
 	print(distance, loc, price_limit, house_type, listing_type, time, preferences)
 	url=zillow.create_url(loc, listing_types=[listing_type], price_range= (40000, price_limit), min_bedroom=0, min_bathroom=0, house_types= [house_type])
 	soup=zillow.get_soup(url)

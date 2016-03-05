@@ -84,8 +84,9 @@ def get_score(locations, category_filter, radius):
     if score > max_score:
       max_score = score
   if max_score == 0:
-    new_scores [0]*len(location_raw_scores)
-  new_scores = [x / max_score for x in location_raw_scores]
+    new_scores = [0]*len(location_raw_scores)
+  else:
+    new_scores = [x / max_score for x in location_raw_scores]
   return new_scores
 
 def get_yelp_scores(locations, distance, preferences):
