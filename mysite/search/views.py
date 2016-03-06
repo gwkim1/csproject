@@ -36,12 +36,21 @@ def results(request):
 	price_limit=round(float(request.POST.get("price_limit")))
 	house_type=request.POST.get("house_type")
 	listing_type=request.POST.get("listing_type")
+<<<<<<< HEAD
 	time='"'+request.POST.get("time")+'"'
 	weights=[]
 	for j in range(1,12):
 		weights.append(float(request.POST.get("pref_"+str(j))))
 
 	url=zillow.create_url(loc, listing_types=[listing_type], price_range= (0, price_limit), min_bedroom=0, min_bathroom=0, house_types= [house_type])
+=======
+	time=request.POST.get("time")
+	preferences=[]
+	for j in range(1,11):
+		preferences.append(float(request.POST.get("pref_"+str(j))))
+	print(distance, loc, price_limit, house_type, listing_type, time, preferences)
+	url=zillow.create_url(loc, listing_types=[listing_type], price_range= (40000, price_limit), min_bedroom=0, min_bathroom=0, house_types= [house_type])
+>>>>>>> 3c04e7bed6f3faacc11b66dd5954754efb61d723
 	soup=zillow.get_soup(url)
 	result=zillow.get_house_info(soup, output_info=["latlong", "price", "address"])
 	Yelp_pref,database_pref=weights[:7],weights[7:]
