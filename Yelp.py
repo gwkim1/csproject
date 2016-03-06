@@ -33,7 +33,7 @@ def get_results(params):
   return data
 
 
-def get_search_parameters(lat, long, term, radius, limit, category_filter):
+def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=0):
   #See the Yelp API for more details
   '''
   Possible Filters
@@ -54,6 +54,8 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter):
     params["limit"] = limit
   if category_filter != "":
     params["category_filter"] = category_filter
+  if sort !=0:
+    params["sort"] = sort
   return params
 
 
@@ -99,10 +101,24 @@ def get_yelp_scores(locations, distance, preferences):
   score_list_location = list(map(list, zip(*score_list_category)))
   return score_list_location
 
+def yelp_search(location, distance, term, category_filter = "", sort = 0, offset = 0):
+  # returns list in order of name, distance, rating, # of reviews, location
+  results = search(location, term = term, radius = distance, category_filter = category_filter, sort = sort)
+  result_list = []
+  for result in results:
+    result_list.append(dict_to_list(result))
+  return result_list
 
 
+def dict_to_list(dictionary):
+  categories = ""
+  for i in dictionary["categories"]:
+    categories += i[0]+" "
+  output = [dictionary["name"], dictionary["distance"], dictionary["rating"],
+   dictionary["review_count"], (dictionary["location"]["latitude"], dictionary["location"]["longitude"])]
+  return output
 
-def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_filter = "", offset = 0, count= False):
+def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_filter = "", offset = 0, count= False, sort = 0):
   '''
   locations: tuple representing longlat pairs
   '''
