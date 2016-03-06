@@ -62,8 +62,8 @@ def results(request):
 		scores.append(dot_product)
 		result[j].append(scores[j])
 		print("property {} has score {}".format(result[j][0],scores[j]))
-	scores.sort()
-    ##figure out how to sort this based on the score coordinate
+	result = sorted(result, key=lambda x: x[-1])
+
 	c={'results': result, "distance": distance}
 	return render(request, 'search/results.html', c)
 
