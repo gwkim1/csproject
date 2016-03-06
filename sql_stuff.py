@@ -14,13 +14,13 @@ ordered_columns={"crimes":
                 }
 
 sql_datatypes={"crimes":
-                        {"date":"text", "code": "varchar(4)", "location": "varchar(50)", "latitude": "real", "longitude": "real"},
+                        {"date":"text", "code": "varchar(4)", "location": "text", "latitude": "real", "longitude": "real"},
                "IUCR_codes":
-                        {"code":"varchar(4)", "primary_type":"varchar(50)", "secondary_type": "varchar(50)"},
+                        {"code":"varchar(4)", "primary_type":"text", "secondary_type": "text"},
                "bike_racks":
                         {"number": "integer", "latitude":"real", "longitude":"real"},
                "fire_police":
-                        {"address": "varchar(50)", "latitude": "real", "longitude": "real", "type": "varchar(1)"}
+                        {"address": "text", "latitude": "real", "longitude": "real", "type": "varchar(1)"}
                }
 
 LABELED_FILENAMES={"crimes":
@@ -39,9 +39,9 @@ test_coordinates={"me": (41.783213,-87.601375), "low crime": (41.973047, -87.777
 sql_strings={"crimes":
                       {1: '''SELECT date, primary_type, secondary_type, longitude, latitude FROM IUCR_codes JOIN crimes 
                              ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) 
-                             AND distance({},{}, latitude, longitude)<={};''',
+                             AND distance({},{}, latitude, longitude)<={} AND primary_type IN {};''',
 
-                       2: '''SELECT count(*) FROM crimes WHERE strftime('%s',date)>=strftime('%s', {});'''},
+                       2: '''SELECT count(*) FROM crimes JOIN IUCR_codes ON IUCR_codes.code=crimes.code WHERE strftime('%s',date)>=strftime('%s', {}) AND primary_type IN {};'''},
              "bike_racks":
                       {1: '''SELECT number, latitude, longitude FROM bike_racks WHERE distance({},{}, latitude, longitude)<={}''',
 
@@ -50,12 +50,13 @@ sql_strings={"crimes":
                       {1: '''SELECT address, latitude, longitude FROM fire_police WHERE distance({},{}, latitude, longitude)<={} AND type={}''',
 
                        2: '''SELECT count(*) FROM fire_police WHERE type={}'''}}
-CRIME_TYPES=['ARSON','ASSAULT','BATTERY','BURGLARY','CONCEALED CARRY LICENSE VIOLATION','CRIM SEXUAL ASSAULT','CRIMINAL ABORTION','CRIMINAL DAMAGE',
- 'CRIMINAL TRESPASS','DECEPTIVE PRACTICE','GAMBLING','HOMICIDE','HUMAN TRAFFICKING','INTERFERENCE WITH PUBLIC OFFICER','INTIMIDATION','KIDNAPPING',
- 'LIQUOR LAW VIOLATION','MOTOR VEHICLE THEFT','NARCOTICS','NON - CRIMINAL','NON-CRIMINAL','NON-CRIMINAL (SUBJECT SPECIFIED)','OBSCENITY',
- 'OFFENSE INVOLVING CHILDREN','OTHER NARCOTIC VIOLATION','OTHER OFFENSE','PROSTITUTION','PUBLIC INDECENCY','PUBLIC PEACE VIOLATION','RITUALISM',
- 'ROBBERY','SEX OFFENSE','STALKING','THEFT', 'WEAPONS VIOLATION'] #weighting
 
+CRIME_TYPES={"Violent crimes":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'", "'HOMICIDE'", "'KIDNAPPING'", "'SEX OFFENSE'", "'INTIMIDATION'", "'WEAPONS VIOLATION'", '"OFFENSE INVOLVING CHILDREN"'],
+            "Property crimes":['"ARSON"', '"BURGLARY"', '"CRIMINAL DAMAGE"', '"MOTOR VEHICLE THEFT"', '"ROBBERY"'],
+            "Other victimed non-violent crimes":['"CRIMINAL TRESSPASS"','"CRIMINAL ABORTION"', '"STALKING"',  '"OTHER OFFENSE"', '"RITUALISM"'],
+            "Quality of life crimes": ['"INTERFERENCE WITH PUBLIC OFFICER"','"DECEPTIVE PRACTIVE"', '"GAMBLING"', '"LIQUOR LAW VIOLATION"', '"OBSCENITY"' '"HUMAN TRAFFICKING"', '"PROSTITUTION"',
+                                       '"PUBLIC INDECENCY"', '"PUBLIC PEACE VIOLATION"', '"NARCOTICS"', '"OTHER NARCOTIC VIOLATION"','"CONCEALED CARRY LICENSE VIOLATION"']
+            }
 CHICAGO_AREA=606100000
 project_path=os.path.abspath(os.curdir)
 csv_folder="/chicago_data/Clean/"
@@ -91,6 +92,7 @@ def score_normalizer(x, tolerance=1.5, base=1.5):
           score_normalizer(1, 2, 0.25)=0.8409, score_normalizer(1,2,2)=0.25)
     Base is the reciprocal of what we want f(1) to be.
     (i.e. score_normalizer(y, base, 1)=1/base)'''
+
     assert tolerance>=1, "please make tolerance greater than 1"
     assert base>=1, "please make base greater than 1"
     return base**(-x**tolerance)
@@ -140,39 +142,48 @@ def search(time, lat, lon, distance, database_name):
     con=sqlite3.connect(database_name)
     con.create_function("distance", 4, haversine)
     cur=con.cursor()
-    rv=[]
+    rv={}
     crime_results=crime_search(time, lat, lon, distance, cur)
-    rv.append({"results":crime_results[0], "score": score_normalizer(x=crime_results[1]/prop_area)})
+    for j in crime_results:
+        rv[j]={"results":crime_results[j][0], "score": score_normalizer(x=crime_results[j][1]/prop_area)}
+
     bike_results=bike_search(lat,lon,distance,cur)
-    #rv.append({"results": bike_results[0], "score": score_normalizer(x=prop_area/bike_results[1])})
+    if bike_results[1]==0:
+        rv["bike_racks"]={"results":bike_results[0], "score": 0}
+    else:
+        rv["bike_racks"]={"results": bike_results[0], "score": score_normalizer(x=prop_area/bike_results[1])}
+
     fire_police_results=fire_police_search(lat,lon,distance,cur)
     if fire_police_results["fire"][1]==0:
-        rv.append({"results":fire_police_results["fire"][0], "score": 0})
+        rv["fire"]={"results":fire_police_results["fire"][0], "score": 0}
     else:
-        rv.append({"results":fire_police_results["fire"][0], "score": score_normalizer(x=prop_area/fire_police_results["fire"][1])})
-    if fire_police_results["police"][1]==0:
-        rv.append({"results":fire_police_results["police"][0], "score": 0})
-    else:
-        rv.append({"results":fire_police_results["police"][0], "score": score_normalizer(x=prop_area/fire_police_results["police"][1])})
+        rv["fire"]={"results":fire_police_results["fire"][0], "score": score_normalizer(x=prop_area/fire_police_results["fire"][1])}
 
-    #list of dictionaries, in order crimes, bike, fire, police
+    if fire_police_results["police"][1]==0:
+        rv["police"]={"results":fire_police_results["police"][0], "score": 0}
+    else:
+        rv["police"]={"results":fire_police_results["police"][0], "score": score_normalizer(x=prop_area/fire_police_results["police"][1])}
+
+    #dictionary of dictionaries
     return rv
 
 def crime_search(time, lat, lon, distance, cursor):
-    cursor.execute(sql_strings["crimes"][1].format(time, lat, lon, distance))
-    results=cursor.fetchall()
-    cursor.execute(sql_strings["crimes"][2].format(time))
-    total_crimes=cursor.fetchall()[0][0]
-
-    if total_crimes==0:
-        print("Not enough results, please widen your time frame")
-        return
-
-    num_crimes=len(results)
-    prop_crimes=num_crimes/total_crimes
-
-    return (results, prop_crimes)
-
+    rv={}
+    for j in CRIME_TYPES:
+        print("searching {}".format(j))
+        j_values=[str(k) for k in CRIME_TYPES[j]]
+        modifier="("+",".join(j_values)+")"
+        cursor.execute(sql_strings["crimes"][1].format(time, lat, lon, distance, modifier))
+        results=cursor.fetchall()
+        cursor.execute(sql_strings["crimes"][2].format(time, modifier))
+        total_crimes=cursor.fetchall()[0][0]
+        #if total_crimes==0:
+        #    rv[j]=([],0)
+        num_crimes=len(results)
+        prop_crimes=num_crimes/total_crimes
+        rv[j]=(results, prop_crimes)
+        print("found {} local results, {} total results".format(num_crimes, total_crimes))
+    return rv
 def bike_search(lat, lon, distance, cursor):
     cursor.execute(sql_strings["bike_racks"][1].format(lat, lon, distance))
     results=cursor.fetchall()
@@ -207,14 +218,13 @@ def ranking(houses, database_name, time, distance):
     rv=[]
     for j in houses:
         ###each item is a house, where each item inside the house is a ranking###
-        scores=search(time, j[0], j[1], distance, database_name)
-        rv.append([scores[0]["score"]])
+        result=search(time, j[0], j[1], distance, database_name)
+        rv.append([result["Violent crimes"]["score"], result["Property crimes"]["score"], result["Other victimed non-violent crimes"]["score"], result["Quality of life crimes"]["score"]])
     return rv
 
 
 
 
-[""]
 
 
 
