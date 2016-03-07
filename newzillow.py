@@ -176,6 +176,7 @@ def create_house_objects(soup):
     house_articles_list = []
     for eachsoup in soup_list:
         house_articles_ul = eachsoup.find("ul", {"class": "photo-cards"})
+        print(type(house_articles_ul))
         house_articles = house_articles_ul.find_all("article")
         house_articles_list += house_articles   
 

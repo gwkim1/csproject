@@ -6,11 +6,27 @@ Ideas for improvement:
 2. 
 
 
-
 What hasn't been done yet:
 1. tiebreaking?
 2. dealing with the "ideal value"
 '''
+
+
+def suggest_house(house_list, criteria_list):
+    '''
+    This is a function that combines all functions under
+
+    house_list: [House, House, House] House objects
+    criteria_list: [["price", 1000, 2000, None, 300], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
+    for numerical criterion: [criterion name, lower bound, upper bound, ideal value, weight]
+    for categorical criterion: [criterion name, first choice, second choice .... nth choice, weight]
+
+    returns a list with each tuple being: (ranking, address, score, house object)
+    '''
+    arr = create_array(house_list, criteria_list)
+    score_array = calculate_preference(arr, house_list, criteria_list)
+    weighted_array = get_weighted_score(score_array, criteria_list)
+    return show_ranking(weighted_array, house_list)
 
 
 # This also deletes houses that does not meet criteria from the original house_list
@@ -18,12 +34,6 @@ def create_array(house_list, criteria_list):
     '''
     Creates a numpy array to store the scores for every house and every criterion
     For blocks in which a house doesn't meet a criterion, set the initial value as None
-
-    for now, the two arguments must look like:
-    house_list: [House, House, House] House objects
-    criteria_list: [("price", 1000, 2000, None, 300), ("house_type", "houses", "apartments", "condos/co-ops", 500)]
-    for numerical criterion: (criterion name, lower bound, upper bound, ideal value, weight)
-    for categorical criterion: (criterion name, first choice, second choice .... nth choice, weight)
 
     Output:
     returns a numpy array filled with either 0 or None
@@ -84,8 +94,11 @@ def calculate_preference(array, house_list, criteria_list):
     '''
     NOTE
     numpy array does not accept floating values! that is why I multiplied by 100 for now.
+
+    example of a tuple for categorical variable: ["house_type", "houses", "apartments", "condos/co-ops", 500]
     '''
     for col in range(len(criteria_list)):
+        #print(criteria_list[col])
         if type(criteria_list[col][1]) in [int, float]:
             range_len = criteria_list[col][2] - criteria_list[col][1]
             indifference = criteria_list[col][1] + range_len * 0.1
@@ -102,8 +115,10 @@ def calculate_preference(array, house_list, criteria_list):
                 pref_value = house_list[row].info_dict[criteria_list[col][0]]
             else:
                 # prbly consider case in which the value in a cell is 0, not a string.
-
-                pref_value =   len(criteria_list[col]) #- ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
+                pref_value = (len(criteria_list[col][1:-1]) - (criteria_list[col][1:-1].index(house_list[row].info_dict[criteria_list[col][0]]))) / len(criteria_list[col][1:-1])
+                #print(criteria_list[col])
+                #print("house_list[row].info_dict[criteria_list[col][0]]", house_list[row].info_dict[criteria_list[col][0]])
+                #print(criteria_list[col][1:-1].index("houses")) #- ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
 
 
             print("pref:", pref_value, "indif:", indifference, "pref:", preference)
@@ -122,6 +137,7 @@ def get_weighted_score(score_array, criteria_list):
         total_weight += ctuple[-1]
     weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
     return np.dot(score_array, weight_array)
+
 
 # need tiebreaking + sorting along with house_list
 def show_ranking(weighted_array, house_list):
