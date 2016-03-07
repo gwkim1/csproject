@@ -19,6 +19,7 @@ class House:
 
 		self.lat = float(house_article["latitude"])/1000000
 		self.long = float(house_article["longitude"])/1000000
+		self.score = None
 
 		# There is a property info without an address!! what is this?
 		if property_info.find("span", {'itemprop': 'streetAddress'}) == None:
@@ -32,7 +33,7 @@ class House:
 
 		if unit_info != None:
 			self.price = extract_numbers(unit_info.find("td", {"class": "building-units-price"}).text)
-			self.bedroom = unit_info["data-bedroom"]
+			self.bedroom = eval(unit_info["data-bedroom"])
 			self.bathroom = extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text)
 			self.size = extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text)
 			# what about self.doz?
@@ -125,6 +126,16 @@ HOUSE_SEARCH_DICT = {"Co-op": "condos/co-ops", "Condo": "condos/co-ops", "Condos
 
 HOUSE_TYPE_DICT = {"houses": "house", "apartments": "apartment_duplex", "condos/co-ops": "condo", "townhomes": "townhouse", "manufactured": "mobile", "lots/land": "land"}
 
+'''
+def get_house_list(zipcode, listing_type, criteria_list):
+    url = create_url(zipcode, listing_type, criteria_list)
+    soup = get_soup(url)
+    house_list = create_house_objects(soup)
+    new_house_list = create_array(house_list, criteria_list, return_list=True)
+    return new_house_list
+'''
+
+
 def get_house_type(type_str):
     house_type = ""
     if "For Sale" in type_str:
@@ -139,8 +150,6 @@ def get_house_type(type_str):
             return house_type
 
     return house_type 
-
-
 		
 
 def create_house_objects(soup):
@@ -211,17 +220,85 @@ def extract_numbers(num_str):
         # Should I return None or 0 or -1?
         return -1
 
-
-
-
-def create_url(zipcode, listing_type = "", price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_types = [], size_range = (0, 0)):
+def create_url(zipcode, listing_type, criteria_list):
 	'''
+	zipcode, listing_type = "", price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_types = [], size_range = (0, 0)
 	zipcode: zipcode
 	For listing_type and house_type the following are the options(put in as string)
 	listing_type: sale, rent, potential listings, recently sold
 	house_type: houses, apartments, condos/co-ops, townhomes, manufactured, lots/land
 	-> for the url: house,apartment_duplex,condo,townhouse,mobile,land + need to add "_type"
+
+	criteria_list =  [["price", 1000, 2000, None, 300], ["bedroom", 1, 3, None, 400], ["size", 800, 1000, None, 100], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
 	'''
+	price_range = (0, 0) 
+	min_bedroom = 0
+	min_bathroom = 0
+	house_types = []
+	size_range = (0, 0)
+
+	for condition in criteria_list:
+		#print(condition)
+		if condition[0] == "price":
+			price_range = (condition[1], condition[2])
+		elif condition[0] == "bedroom":
+			min_bedroom = condition[1]
+		elif condition[0] == "bathroom":
+			min_bathroom = condition[1]
+		elif condition[0] == "size":
+			size_range = (condition[1], condition[2])
+		elif condition[0] == "house_type":
+			house_types = condition[1:-1]
+	#print(price_range)
+
+	base_url = "http://www.zillow.com/homes/"
+	end_url = ""
+
+	if listing_type == "sale":
+		base_url += "for_sale/"
+		end_url = "0_mmm/"
+	else:
+		base_url += "for_rent/"
+
+	# Would hardcoding in Chicago and IL be okay?
+	base_url += "Chicago-IL-" + str(zipcode) + "/"
+
+	# Do we need to check if min_price is smaller?
+	if not (price_range[0] == 0 and price_range[1] == 0):
+		if listing_type in ["", "sale"]:
+			base_url += str(price_range[0]) + "-" + str(price_range[1]) + "_price/"
+		else:
+			base_url += str(price_range[0]) + "-" + str(price_range[1]) + "_mp/"
+
+	if min_bedroom > 0 and min_bedroom < 7:
+		base_url += str(min_bedroom) + "-_beds/"
+	if min_bathroom > 0 and min_bathroom < 7:
+		base_url += str(min_bathroom) + "-_baths/" 
+
+	if not (size_range[0] == 0 and size_range[1] == 0):
+		base_url += str(size_range[0]) + "-" + str(size_range[1]) + "_size/"		
+
+	if len(house_types) > 0:
+		addition_list = []
+		for house_type in house_types:
+			addition_list.append(HOUSE_TYPE_DICT[house_type])
+		addition = ",".join(addition_list)
+		base_url += addition + "_type"
+
+	# need to work with listing_type
+	base_url += end_url
+
+	return base_url
+
+'''
+def create_url_alt(zipcode, listing_type = "", price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_types = [], size_range = (0, 0)):
+	
+	zipcode: zipcode
+	For listing_type and house_type the following are the options(put in as string)
+	listing_type: sale, rent, potential listings, recently sold
+	house_type: houses, apartments, condos/co-ops, townhomes, manufactured, lots/land
+	-> for the url: house,apartment_duplex,condo,townhouse,mobile,land + need to add "_type"
+	
 	base_url = "http://www.zillow.com/homes/"
 	end_url = ""
 
@@ -259,9 +336,8 @@ def create_url(zipcode, listing_type = "", price_range = (0, 0), min_bedroom = 0
 	# need to work with listing_type
 	base_url += end_url
 
-
 	return base_url
-
+'''
 
 def get_soup(url):
 	response = urllib.request.urlopen(url)
@@ -313,10 +389,10 @@ COMMAND_DICT = {
 }
 
 
-def get_house_info(soup, output_info = []):
-	'''
+#def get_house_info(soup, output_info = []):
+'''
 	As output_info, put the key of the COMMAND_DICT above.
-	'''
+	
 	house_articles = soup.find_all("article", {"class": "property-listing"})
 	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
 	
@@ -363,10 +439,10 @@ def get_house_info(soup, output_info = []):
 		final_result.append(result_list)
 	
 	return final_result
+'''
 
 
-
-	'''
+'''
 	ONE APPROACH I TRIED WHICH IS MORE ACCRUATE BUT TAKES TOO MUCH TIME
 
 
@@ -417,12 +493,12 @@ def get_house_info(soup, output_info = []):
 			new_link_soup = get_soup(link)
 			#### Start getting the info here.
 			#### How do we initialize mutliple houses in here?
-	'''
+'''
 
 
 
 
-	'''
+'''
 	This was in the House object __init__
 	extracting info from multiple units right from the original link. prbly not going to use this
 
@@ -441,4 +517,4 @@ def get_house_info(soup, output_info = []):
 			self.doz = None
 			self.built_year = None
 			self.bathroom = None
-	'''
+'''

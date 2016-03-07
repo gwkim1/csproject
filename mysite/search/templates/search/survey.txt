@@ -1,0 +1,11 @@
+Restaurants nearby
+Active life nearby (parks, gyms, basketball courts)
+Arts and entertainment nearby
+Schools/education nearby
+Health establishments nearby (dentists, pharmacies)
+Nightlife nearby
+Shopping outlets nearby
+Violent crime (homicide, assault, weapons violations, etc) nearby
+Property crime (arson, theft, burglarly, criminal damage, etc) nearby
+Other victimed non-violent crime (tresspassing, stalking, etc) nearby
+Quality of life crime (gambling, narcotics, prostitution, etc) nearby

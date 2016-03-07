@@ -24,7 +24,7 @@ sql_datatypes={"crimes":
                }
 
 LABELED_FILENAMES={"crimes":
-                            ["crimes_2013.csv", "crimes_2014.csv", "crimes_2015.csv","crimes_2016.csv"],
+                            ["crimes_2013.csv","crimes_2014.csv","crimes_2015.csv","crimes_2016.csv"],
                    "IUCR_codes":
                             ["IUCR_codes.csv"],
                    "bike_racks":
@@ -82,7 +82,8 @@ def haversine(lat1, lon1, lat2, lon2):
     return m
 
 def score_normalizer(x, tolerance=1.5, base=1.5):
-    '''Function used to turn scores from 0 to infinity into scores from 0 to 1, such that:
+    '''
+    Function used to turn scores from 0 to infinity into scores from 0 to 1, such that:
          f(0)=1
          lim_{x-->inf} f(x)=0
          f is decreasing, and f>=0
@@ -91,16 +92,19 @@ def score_normalizer(x, tolerance=1.5, base=1.5):
     (e.g. score_normalizer(2, 2, 0.25)=0.95760, score_normalizer(2,2,2)=0.0625
           score_normalizer(1, 2, 0.25)=0.8409, score_normalizer(1,2,2)=0.25)
     Base is the reciprocal of what we want f(1) to be.
-    (i.e. score_normalizer(y, base, 1)=1/base)'''
+    (i.e. score_normalizer(y, base, 1)=1/base)
+    '''
 
     assert tolerance>=1, "please make tolerance greater than 1"
     assert base>=1, "please make base greater than 1"
     return base**(-x**tolerance)
 
 def db_helper(list_of_filenames, table_name, path=csv_path):
-    '''This is a function which takes in a list of filenames, a table_name for them. Returns the necessary
+    '''
+    This is a function which takes in a list of filenames, a table_name for them. Returns the necessary
     data and insertion/creation strings to import this into a database usable by sqlite3. Assumes all the files
-    are formatted similarly.'''
+    under the same table_name are formatted similarly
+    '''
 
     data=[]
     for filename in list_of_filenames:
@@ -137,6 +141,35 @@ def create_db(labeled_filenames, database_name, path=csv_path):
         print ("done")
     con.commit()
 
+def merge_results(list_of_lists_of_dictionaries):
+    '''For use by search()'''
+    num_houses=len(list_of_lists_of_dictionaries[0])
+    for j in list_of_lists_of_dictionaries:
+        assert len(j)==num_houses
+    current_house=0
+    rv=[]
+    while current_house<num_houses:
+        house_dict={}
+        current_house_dicts=[k[current_house] for k in list_of_lists_of_dictionaries]
+        for j in current_house_dicts:
+            house_dict=dict_merge(house_dict,j)
+        rv.append(house_dict)
+        current_house+=1
+    return rv
+
+def dict_merge(d1,d2):
+    '''
+    d1 and d2 are dictionary with strings as keys and python sets as values. This function takes all the key, value pairs from d2
+    and adds them to d1. Returns a merged dictionary.
+    '''
+    for j in d2:
+        if j in d1:
+            d1[j].update(d2[j])
+        else:
+            d1[j]=d2[j]
+    return d1
+
+
 def search(time, list_of_houses, distance, database_name): 
     prop_area=pi*distance**2/CHICAGO_AREA
     con=sqlite3.connect(database_name)
@@ -144,41 +177,19 @@ def search(time, list_of_houses, distance, database_name):
     cur=con.cursor()
     rv=[]
     for j in range(len(list_of_houses)):
+        #initialize an empty dictionary for each house
         rv.append({})
-    crime_results=crime_search(time, list_of_houses, distance, cur)
-    for j in range(len(crime_results)):
-        for i in crime_results[j]:
-            i_crime_info={"results":crime_results[j][i][0], "score": score_normalizer(x=crime_results[j][i][1]/prop_area)}
-            rv[j][i]=i_crime_info
-    return rv
+    #these are all lists of dictionaries, containing dictionaries as values
+    crime_results=crime_search(time, list_of_houses, distance, prop_area, cur)
+    bike_results=bike_search(list_of_houses, distance, prop_area, cur)
+    fire_police_results=fire_police_search(list_of_houses, distance, prop_area, cur)
+    return merge_results([crime_results, bike_results, fire_police_results])
+    #returns a list of dictionaries, with each key as a category, and the value is (results, score)
 
 
+    
 
-    #returns a list of dictionaries, with each dictionary representing a house
-    #each dictionary has categories as keys, with values as dictionaries containng two keys: results, score.
-
-
-    #bike_results=bike_search(lat,lon,distance,cur)
-    #if bike_results[1]==0:
-    #    rv["bike_racks"]={"results":bike_results[0], "score": 0}
-    #else:
-    #    rv["bike_racks"]={"results": bike_results[0], "score": score_normalizer(x=prop_area/bike_results[1])}
-
-    #fire_police_results=fire_police_search(lat,lon,distance,cur)
-    #if fire_police_results["fire"][1]==0:
-    #    rv["fire"]={"results":fire_police_results["fire"][0], "score": 0}
-    #else:
-    #    rv["fire"]={"results":fire_police_results["fire"][0], "score": score_normalizer(x=prop_area/fire_police_results["fire"][1])}
-
-    #if fire_police_results["police"][1]==0:
-    #    rv["police"]={"results":fire_police_results["police"][0], "score": 0}
-    #else:
-    #    rv["police"]={"results":fire_police_results["police"][0], "score": score_normalizer(x=prop_area/fire_police_results["police"][1])}
-
-    #dictionary of dictionaries
-    return rv
-
-def crime_search(time, list_of_houses, distance, cursor):
+def crime_search(time, list_of_houses, distance, prop_area, cursor):
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
@@ -188,68 +199,88 @@ def crime_search(time, list_of_houses, distance, cursor):
         possible_crimes_string="("+",".join(possible_crimes)+")"
         cursor.execute(sql_strings["crimes"][2].format(time, possible_crimes_string))
         total_i_crimes=cursor.fetchall()[0][0]
-        print("found {} total results for category {}".format(total_i_crimes, i))
+        print("found {} total results for category {} in the entire city. Searching for local results...".format(total_i_crimes, i))
         for j in range(len(list_of_houses)):
             cursor.execute(sql_strings["crimes"][1].format(time,list_of_houses[j][0], list_of_houses[j][1], distance, possible_crimes_string))
             local_results=cursor.fetchall()
             num_local_crimes=len(local_results)
             prop_crimes=num_local_crimes/total_i_crimes
-            rv[j][i]=(local_results, prop_crimes)
-            print("found {} local results, {} total results".format(num_local_crimes, total_i_crimes))
+            score=score_normalizer(prop_crimes/prop_area)
+            rv[j][i]=(local_results, score)
+            #print("found {} local results, ratio of crime is {}, ratio of area is {}, crime density is {}, score is {}".format(num_local_crimes, prop_crimes, prop_area, prop_crimes/prop_area, score))
+        print("done")
         #returns a list of dictionaries with keys as category, values as tuples with results, prop crimes, in the order in which they come in in list_of_houses
+        #example output:
+        #[
+        #  {"Violent Crimes":([list of results], score),
+        #   "Quality of life crimes": ([list of results], score),
+        #   etc},
+        #
+        #  { etc
+        #    }
+        #]
     return rv
 
 
 ##change these to accept list of houses instead with latlong pairs
-def bike_search(lat, lon, distance, cursor):
-    cursor.execute(sql_strings["bike_racks"][1].format(lat, lon, distance))
-    results=cursor.fetchall()
+def bike_search(list_of_houses, distance,prop_area, cursor):
+    #divvy vs nondivvy
+    rv=[]
+    for j in range(len(list_of_houses)):
+        rv.append({})
+    print("searching bike racks")
     cursor.execute(sql_strings["bike_racks"][2])
     total_results=cursor.fetchall()
-    count, total_count=0,0
-    for j in results:
-        count+=j[0]
+    total_count=0
     for j in total_results:
         total_count+=j[0]
-    prop_bike_racks=count/total_count
-    return (results, prop_bike_racks)
-
-def fire_police_search(lat, lon, distance, cursor):
-    #not enough data points to use this well? not for ranking
-    cursor.execute(sql_strings["fire_police"][1].format(lat, lon, distance, '"F"'))
-    fire_results=cursor.fetchall()
-    cursor.execute(sql_strings["fire_police"][2].format('"F"'))
-    fire_total_results=cursor.fetchall()
-    cursor.execute(sql_strings["fire_police"][1].format(lat, lon, distance, '"P"'))
-    police_results=cursor.fetchall()
-    cursor.execute(sql_strings["fire_police"][2].format('"P"'))
-    police_total_results=cursor.fetchall()
-
-
-    prop_fire,prop_police=len(fire_results)/fire_total_results[0][0],len(police_results)/police_total_results[0][0]
-    
-    return {"fire":(fire_results, prop_fire), "police":(police_results, prop_police)}
-
-def ranking(houses, database_name, time, distance):
-    '''Houses is a list of tuples with lat, long pairs'''
-    rv=[]
-
-    results=search(time, houses, distance, "test.db")
-    #this is a list of dictionaries with dictionaries as values with two key, value pairs. Second value is the ranking\
-    for j in results:
-        rv.append([j["Violent crimes"]["score"],j["Property crimes"]["score"],j["Other victimed non-violent crimes"]["score"],j["Quality of life crimes"]["score"]])
+    print("found {} total bike racks. Searching for local results...".format(total_count))
+    for j in range(len(list_of_houses)):
+        cursor.execute(sql_strings["bike_racks"][1].format(list_of_houses[j][0], list_of_houses[j][1], distance))
+        local_results=cursor.fetchall()
+        local_count=0
+        for k in local_results:
+            local_count+=k[0]
+        #print("found {} local bike racks".format(local_count))
+        prop_bike_racks=local_count/total_count
+        #avoid division by 0
+        if prop_bike_racks==0:
+            rv[j]["bike_racks"]=(local_results,0)
+        else:
+            score=score_normalizer(prop_area/prop_bike_racks)
+            rv[j]["bike_racks"]=(local_results, score)
+    print("done")
     return rv
 
-    #for j in houses:
-       ###each item is a house, where each item inside the house is a ranking###
-     #   result=search(time, j[0], j[1], distance, database_name)
-    #    rv.append([result["Violent crimes"]["score"], result["Property crimes"]["score"], result["Other victimed non-violent crimes"]["score"], result["Quality of life crimes"]["score"]])
-    #return rv
+def fire_police_search(list_of_houses, distance, prop_area, cursor):
+    #not enough data points to use this well? not for ranking
+    rv=[]
+    for j in range(len(list_of_houses)):
+        rv.append({})
+    print("searching fire police")
+    cursor.execute(sql_strings["fire_police"][2].format('"F"'))
+    fire_total_results=cursor.fetchall()[0][0]
+    cursor.execute(sql_strings["fire_police"][2].format('"P"'))
+    police_total_results=cursor.fetchall()[0][0]
 
-
-
-
-
-
-
+    print("found {} total fire stations, {} total police stations. Searching for local results...".format(fire_total_results, police_total_results))
+    for j in range(len(list_of_houses)):
+        cursor.execute(sql_strings["fire_police"][1].format(list_of_houses[j][0],list_of_houses[j][1], distance, '"F"'))
+        fire_results=cursor.fetchall()
+        cursor.execute(sql_strings["fire_police"][1].format(list_of_houses[j][0],list_of_houses[j][1], distance, '"P"'))
+        police_results=cursor.fetchall()
+        #print("found {} local fire stations, {} local police stations".format(len(fire_results), len(police_results)))
+        prop_fire, prop_police=len(fire_results)/fire_total_results, len(police_results)/police_total_results
+        if prop_fire==0:
+            fire_score=0
+        else:
+            fire_score=score_normalizer(prop_area/prop_fire)
+        if prop_police==0:
+            police_score=0
+        else:
+            police_score=score_normalizer(prop_area/prop_police)
+        rv[j]["police"]=(police_results, police_score)
+        rv[j]["fire"]=(fire_results, fire_score)
+    print("done")
+    return rv
 

@@ -1,4 +1,5 @@
 import numpy as np
+import zillow
 
 '''
 Ideas for improvement:
@@ -9,7 +10,25 @@ Ideas for improvement:
 What hasn't been done yet:
 1. tiebreaking?
 2. dealing with the "ideal value"
+3. get_house_list doesn't work(because of create_array) and is too slow
 '''
+
+def get_house_list(zipcode, listing_type, criteria_list):
+    url = zillow.create_url(zipcode, listing_type, criteria_list)
+    soup = zillow.get_soup(url)
+    house_list = zillow.create_house_objects(soup)
+    new_house_list = create_array(house_list, criteria_list, return_list=True)
+    return new_house_list
+
+
+def concatenate_arrays(array_list):
+    '''
+    concatenates all numpy arrays
+    '''
+    new_arr = array_list[0]
+    for arr in array_list[1:]:
+        new_arr = np.append(new_arr, arr, axis=1)
+    return new_arr
 
 
 def suggest_house(house_list, criteria_list):
@@ -30,13 +49,18 @@ def suggest_house(house_list, criteria_list):
 
 
 # This also deletes houses that does not meet criteria from the original house_list
-def create_array(house_list, criteria_list):
+def create_array(house_list, criteria_list, return_list=False):
     '''
     Creates a numpy array to store the scores for every house and every criterion
     For blocks in which a house doesn't meet a criterion, set the initial value as None
 
     Output:
     returns a numpy array filled with either 0 or None
+
+
+    I may have to delete the "deleting" part, but I need this just in case zillow returns
+    So while the criteria_list is the same as what we put in in create_url, what pedro and ryan should use
+    is the house_list that this function outputs.
     '''
     house_dict = {}
     criteria_dict = {}
@@ -67,6 +91,13 @@ def create_array(house_list, criteria_list):
                     need_to_delete.add(i)
                     print("house", i, "does not meet criterion", j)
             else:
+                print(type(house_dict[i].info_dict[criteria_dict[j][0]]))
+                print(type(criteria_dict[j][1]))
+                print(criteria_dict[j])
+                print(house_dict[i].info_dict[criteria_dict[j][0]])
+                print(house_dict[i].info_dict)
+                print(criteria_dict[j][2])
+                
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
                     print("house", i, "does not meet criterion", j)
@@ -83,6 +114,9 @@ def create_array(house_list, criteria_list):
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
         del house_list[i]        
+
+    if return_list == True:
+        return house_list
 
     return score_array
     
@@ -125,10 +159,10 @@ def calculate_preference(array, house_list, criteria_list):
             if pref_value < indifference:
                 array[row][col] = 0
             elif pref_value > preference:
-                array[row][col] = 100
+                array[row][col] = 1
             else:
                 array[row][col] = (pref_value - indifference) * 100 / (preference - indifference)
-    return array 
+    return array
 
 
 def get_weighted_score(score_array, criteria_list):
