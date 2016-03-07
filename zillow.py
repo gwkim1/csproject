@@ -19,6 +19,7 @@ class House:
 
 		self.lat = float(house_article["latitude"])/1000000
 		self.long = float(house_article["longitude"])/1000000
+		self.score = None
 
 		# There is a property info without an address!! what is this?
 		if property_info.find("span", {'itemprop': 'streetAddress'}) == None:
