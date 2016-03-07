@@ -2,7 +2,7 @@ import rauth
 import math
 import time
 
-
+# Note if the Yelp search does not work it may be due to expired time stamp, reboot VM to solve this issue
 
 
 CONSUMER_KEY = "_c-Jb5bdZr9eMlFpyrcx7g"
@@ -12,7 +12,7 @@ TOKEN_SECRET = "59dHWliuAzv5wyOMFDtW57u_GiM"
 # In Meters
 WALKING_DISTANCE = 1000
 CATEGORIES = ["restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
-
+ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 # Second Set of API keys just in case
 #Consumer_Key2 =   "nPpvHrRlTBQGMWrb4eOeLQ"
 #Consumer_Secret2 =  "ZzruromYSM0p0bFYfMk4vP2ddvY"
@@ -105,17 +105,21 @@ def yelp_search(location, distance, term, category_filter = "", sort = 0, offset
   # returns list in order of name, distance, rating, # of reviews, location
   results = search(location, term = term, radius = distance, category_filter = category_filter, sort = sort)
   result_list = []
+  if results == (0, []):
+    return []
+  count = 0
   for result in results:
-    result_list.append(dict_to_list(result))
+    result_list.append(dict_to_list(result, ALPHABET[count]))
+    count+=1
   return result_list
 
 
-def dict_to_list(dictionary):
+def dict_to_list(dictionary, letter):
   categories = ""
   for i in dictionary["categories"]:
     categories += i[0]+" "
   output = [dictionary["name"], dictionary["distance"], dictionary["rating"],
-   dictionary["review_count"], (dictionary["location"]["latitude"], dictionary["location"]["longitude"])]
+   dictionary["review_count"], dictionary["location"]["latitude"], dictionary["location"]["longitude"], letter.upper()]
   return output
 
 def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_filter = "", offset = 0, count= False, sort = 0):
