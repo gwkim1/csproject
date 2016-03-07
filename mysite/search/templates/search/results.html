@@ -9,9 +9,9 @@
     <form method="post" action="{% url 'detailed_results'%}">
     	{% csrf_token %}
     	<p> We ranked {{ result.address }} with a score of {{ result.score }}</p>
-    <input type="hidden" name="lat" value=" {{ result.1 }}">
-    <input type="hidden" name="long" value=" {{ result.2 }}">
-    <input type="hidden" name="distance" value=" {{ distance }}">
+    <input type="hidden" name="address" value=" {{ result.address }}">
+    <input type="hidden" name="lat" value=" {{ result.lat }}">
+    <input type="hidden" name="long" value=" {{ result.long }}">
     <input type="submit" value="Learn more" display="none">
     </form>
     </li>

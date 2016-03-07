@@ -168,14 +168,25 @@ def results(request):
 	return render(request, 'search/results.html', c)
 
 def detailed_results(request):
-
-	lat=float(request.POST.get("lat"))
-	lon=float(request.POST.get("long"))
-	distance=float(request.POST.get("distance"))
-	time=float(request.POST.get("time"))
 	
-
-	c={"results": crime_list[0], "score": crime_list[1]}
+	c = {}
+	c["current_lat"] = request.POST.get("lat")
+	c["current_long"] = request.POST.get("long")
+	c['current_distance'] = request.POST.get('distance', 500)
+	c['current_term'] = request.POST.get('term', "food")
+	c['current_cat'] = request.POST.get('cat')
+	#print(c['current_cat'])
+	c['categories'] = ["all","restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
+	if c['current_term'] != "":
+		if c['current_cat'] == "all":
+			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), c['current_distance'], c['current_term'])
+		else:
+			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), c['current_distance'], c['current_term'], c['current_cat'])
+		
+	
+	address = request.POST.get("address")
+	
+	c["address"] = address
 	return render(request, 'search/detailed_results.html', c)
 
 

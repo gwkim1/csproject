@@ -1,8 +1,114 @@
+<!DOCTYPE html>
 <html>
-<p> This property's crime score is {{ score }} </p>
-<ul>
-	{% for result in results %}
-    <li> {{ result }}</li>
+  <head>
+    <style type = "text/css">
+body {
+    background-image: url("http://klineandcorealestate.com/sites/default/files/Real-Estate-1.jpg");
+    background-repeat: repeat-x;
+}
+</style>
+</head>
+    
+
+
+
+<title> main page </title>
+<p> Detailed Results for {{address}}</p>
+
+<form method="post">
+    {% csrf_token %}
+    <label for="distance">Distance: </label>
+    <input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}"></br>
+    <label for="term">Search Yelp: </label>
+    <input id="term" type="string" name="term" value="{{ current_term }}">
+    <input type="hidden" name="address" value=" {{ address }}">
+    <input type="hidden" name="lat" value=" {{ current_lat }}">
+    <input type="hidden" name="long" value=" {{ current_long }}">
+
+    <li>Pick a category</li>
+    {% for category in categories %}
+    <input type="radio" name="cat" value="{{category}}"> {{category}}
     {% endfor %}
-</ul>
+    <input type="submit" value="OK">
+
+
+
+
+
+</form>
+<p> Yelp Search Results:</p>
+  {% for result in results %}
+  <p> {{result.6}}:   {{result.0}}  Rating: {{result.2}} # of Ratings: {{result.3}} </p>
+  {% endfor %} 
+<p> 1 Property </p>
+
+
+
+
+
+
+<head>
+    <style type="text/css">
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map {
+    width: 40%;
+    height: 40%;
+    }
+    </style>
+</head>
+
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+
+function initMap() {
+  var myLatLng = {lat: {{ current_lat }}, lng: {{ current_long }}};
+  var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var labelIndex = 0;
+  var bounds = new google.maps.LatLngBounds();
+  var results = {{ results|safe }};
+  // Create a map object and specify the DOM element for display.
+  var map = new google.maps.Map(document.getElementById('map'), {
+    center: myLatLng,
+    scrollwheel: false,
+    zoom: 14
+  });
+
+  var marker = new google.maps.Marker({
+    map: map,
+    position: myLatLng,
+    title: "{{address}}",
+    label: '1'
+
+  });
+  bounds.extend(myLatLng);
+
+  for (var i = 0; i < results.length; i++){
+
+  var TempLatLng = new google.maps.LatLng(results[i][4],results[i][5]);
+
+  var marker = new google.maps.Marker({
+    label: results[i][6],
+    map: map,
+    position: TempLatLng,
+    title: results[i][0]
+    
+  });
+  bounds.extend(TempLatLng);
+  } 
+  map.fitBounds(bounds);
+
+  // Create a marker and set its position.
+}
+    </script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr6T8_7bIcbN1f4ntweV-iSTWreb0PtBI&callback=initMap">
+    </script>
+  </body>
+
+
+
+
+
+
 </html>

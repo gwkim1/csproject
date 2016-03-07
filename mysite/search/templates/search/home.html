@@ -49,7 +49,7 @@
   <ul>
     {% for question in survey %}
     <li>{{ question.0 }}</li><br>
-    <input type="radio" name="pref_{{ question.1 }}" value="0"> Not at all
+    <input type="radio" name="pref_{{ question.1 }}" value="0" checked="checked"> Not at all
     <input type="radio" name="pref_{{ question.1 }}" value="0.25"> A little
     <input type="radio" name="pref_{{ question.1 }}" value="0.5"> Neutral
     <input type="radio" name="pref_{{ question.1 }}" value="0.75"> Important
