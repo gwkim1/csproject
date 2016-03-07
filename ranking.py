@@ -1,4 +1,5 @@
 import numpy as np
+import zillow
 
 '''
 Ideas for improvement:
@@ -10,6 +11,19 @@ What hasn't been done yet:
 1. tiebreaking?
 2. dealing with the "ideal value"
 '''
+
+def get_house_list(criteria_list, url):
+    soup = zillow.get_soup(url)
+    house_list = zillow.create_house_objects(soup)
+    new_house_list = create_array(house_list, criteria_list, return_list=True)
+    return new_house_list
+
+
+def concatenate_arrays(array_list):
+    '''
+    concatenate all numpy arrays
+    '''
+
 
 
 def suggest_house(house_list, criteria_list):
@@ -30,13 +44,18 @@ def suggest_house(house_list, criteria_list):
 
 
 # This also deletes houses that does not meet criteria from the original house_list
-def create_array(house_list, criteria_list):
+def create_array(house_list, criteria_list, return_list=False):
     '''
     Creates a numpy array to store the scores for every house and every criterion
     For blocks in which a house doesn't meet a criterion, set the initial value as None
 
     Output:
     returns a numpy array filled with either 0 or None
+
+
+    I may have to delete the "deleting" part, but I need this just in case zillow returns
+    So while the criteria_list is the same as what we put in in create_url, what pedro and ryan should use
+    is the house_list that this function outputs.
     '''
     house_dict = {}
     criteria_dict = {}
@@ -125,10 +144,10 @@ def calculate_preference(array, house_list, criteria_list):
             if pref_value < indifference:
                 array[row][col] = 0
             elif pref_value > preference:
-                array[row][col] = 100
+                array[row][col] = 1
             else:
                 array[row][col] = (pref_value - indifference) * 100 / (preference - indifference)
-    return array 
+    return array
 
 
 def get_weighted_score(score_array, criteria_list):

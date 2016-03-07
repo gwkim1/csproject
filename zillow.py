@@ -139,8 +139,6 @@ def get_house_type(type_str):
             return house_type
 
     return house_type 
-
-
 		
 
 def create_house_objects(soup):
@@ -313,10 +311,10 @@ COMMAND_DICT = {
 }
 
 
-def get_house_info(soup, output_info = []):
+#def get_house_info(soup, output_info = []):
 	'''
 	As output_info, put the key of the COMMAND_DICT above.
-	'''
+	
 	house_articles = soup.find_all("article", {"class": "property-listing"})
 	similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
 	
@@ -363,7 +361,7 @@ def get_house_info(soup, output_info = []):
 		final_result.append(result_list)
 	
 	return final_result
-
+	'''
 
 
 	'''
