@@ -148,7 +148,7 @@ def search(time, list_of_houses, distance, database_name):
     crime_results=crime_search(time, list_of_houses, distance, cur)
     for j in range(len(crime_results)):
         for i in crime_results[j]:
-            i_crime_info={"results":j[i][0], "score": score_normalizer(x=j[i][1]/prop_area)}
+            i_crime_info={"results":crime_results[j][i][0], "score": score_normalizer(x=crime_results[j][i][1]/prop_area)}
             rv[j][i]=i_crime_info
     return rv
 
@@ -189,14 +189,13 @@ def crime_search(time, list_of_houses, distance, cursor):
         cursor.execute(sql_strings["crimes"][2].format(time, possible_crimes_string))
         total_i_crimes=cursor.fetchall()[0][0]
         print("found {} total results for category {}".format(total_i_crimes, i))
-        if total_crimes==0:
         for j in range(len(list_of_houses)):
             cursor.execute(sql_strings["crimes"][1].format(time,list_of_houses[j][0], list_of_houses[j][1], distance, possible_crimes_string))
             local_results=cursor.fetchall()
             num_local_crimes=len(local_results)
             prop_crimes=num_local_crimes/total_i_crimes
-            rv.append[j][i]=(local_results, prop_crimes)
-            print("found {} local results, {} total results".format(num_crimes, total_i_crimes))
+            rv[j][i]=(local_results, prop_crimes)
+            print("found {} local results, {} total results".format(num_local_crimes, total_i_crimes))
         #returns a list of dictionaries with keys as category, values as tuples with results, prop crimes, in the order in which they come in in list_of_houses
     return rv
 
@@ -238,7 +237,7 @@ def ranking(houses, database_name, time, distance):
     results=search(time, houses, distance, "test.db")
     #this is a list of dictionaries with dictionaries as values with two key, value pairs. Second value is the ranking\
     for j in results:
-        rv.append(j["Violent crimes"]["score"],j["Property crimes"]["score"],j["Other victimed non-violent crimes"]["score"],j["Quality of life crimes"]["score"])
+        rv.append([j["Violent crimes"]["score"],j["Property crimes"]["score"],j["Other victimed non-violent crimes"]["score"],j["Quality of life crimes"]["score"]])
     return rv
 
     #for j in houses:
