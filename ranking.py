@@ -10,9 +10,11 @@ Ideas for improvement:
 What hasn't been done yet:
 1. tiebreaking?
 2. dealing with the "ideal value"
+3. get_house_list doesn't work(because of create_array) and is too slow
 '''
 
-def get_house_list(criteria_list, url):
+def get_house_list(zipcode, listing_type, criteria_list):
+    url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup)
     new_house_list = create_array(house_list, criteria_list, return_list=True)
@@ -21,9 +23,12 @@ def get_house_list(criteria_list, url):
 
 def concatenate_arrays(array_list):
     '''
-    concatenate all numpy arrays
+    concatenates all numpy arrays
     '''
-
+    new_arr = array_list[0]
+    for arr in array_list[1:]:
+        new_arr = np.append(new_arr, arr, axis=1)
+    return new_arr
 
 
 def suggest_house(house_list, criteria_list):
@@ -86,6 +91,13 @@ def create_array(house_list, criteria_list, return_list=False):
                     need_to_delete.add(i)
                     print("house", i, "does not meet criterion", j)
             else:
+                print(type(house_dict[i].info_dict[criteria_dict[j][0]]))
+                print(type(criteria_dict[j][1]))
+                print(criteria_dict[j])
+                print(house_dict[i].info_dict[criteria_dict[j][0]])
+                print(house_dict[i].info_dict)
+                print(criteria_dict[j][2])
+                
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
                     print("house", i, "does not meet criterion", j)
@@ -102,6 +114,9 @@ def create_array(house_list, criteria_list, return_list=False):
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
         del house_list[i]        
+
+    if return_list == True:
+        return house_list
 
     return score_array
     
