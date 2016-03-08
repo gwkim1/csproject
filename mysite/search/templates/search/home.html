@@ -12,13 +12,31 @@
 	{% csrf_token %}
 	<label for="location">Zipcode: </label>
 	<input id="location" type="number" name="location" value="{{ current_loc }}">
-  <label for="house_type"> House Type: </label>
-  <select name="house_type">
-    <option id="house_type" name="house_type" value="houses">House</option>
-    <option id="house_type" name="house_type" value="apartments">Apartment</option>
-    <option id="house_type" name="house_type" value="Condo/Co-op">Condo/Co-op</option>
+  <br>
+  <label for="house_type1"> House Type 1st preference: </label>
+  <select name="house_type1">
+    <option id="house_type1" name="house_type1" value="houses" selected>House</option>
+    <option id="house_type1" name="house_type1" value="apartments">Apartment</option>
+    <option id="house_type1" name="house_type1" value="Condo/Co-op">Condo/Co-op</option>
   </select>
-  <label for="listing_type">Are you buying or renting? </label>
+  <br>
+  <label for="house_type2"> House Type 2nd preference: </label>
+  <select name="house_type2">
+    <option id="house_type2" name="house_type2" value="houses">House</option>
+    <option id="house_type2" name="house_type2" value="apartments" selected>Apartment</option>
+    <option id="house_type2" name="house_type2" value="Condo/Co-op">Condo/Co-op</option>
+    <option id="house_type2" name="house_type2" value=""></option>
+  </select>
+  <br>
+  <label for="house_type3"> House Type 3rd preference: </label>
+  <select name="house_type3">
+    <option id="house_type3" name="house_type3" value="houses">House</option>
+    <option id="house_type3" name="house_type3" value="apartments">Apartment</option>
+    <option id="house_type3" name="house_type3" value="Condo/Co-op" selected>Condo/Co-op</option>
+    <option id="house_type2" name="house_type2" value=""></option>
+  </select>
+  <br>
+  <label for="listing_type3">Are you buying or renting? </label>
   <select name="listing_type">
     <option id="listing_type" name="listing_type" value="sale"> Buying </option>
     <option id="listing_type" name="listing_type" value="rent"> Renting </option>

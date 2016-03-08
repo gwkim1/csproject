@@ -47,6 +47,7 @@ body {
 
 
 
+
 <head>
     <style type="text/css">
       html, body { height: 100%; margin: 0; padding: 0; }
@@ -62,9 +63,7 @@ body {
     <script type="text/javascript">
 
 function initMap() {
-  var myLatLng = {lat: {{ current_lat }}, lng: {{ current_long }}};
-  var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  var labelIndex = 0;
+  var myLatLng = new google.maps.LatLng({{ current_lat }}, {{ current_long }});
   var bounds = new google.maps.LatLngBounds();
   var results = {{ results|safe }};
   // Create a map object and specify the DOM element for display.
@@ -79,10 +78,8 @@ function initMap() {
     position: myLatLng,
     title: "{{address}}",
     label: '1'
-
   });
   bounds.extend(myLatLng);
-
   for (var i = 0; i < results.length; i++){
 
   var TempLatLng = new google.maps.LatLng(results[i][4],results[i][5]);
@@ -95,7 +92,7 @@ function initMap() {
     
   });
   bounds.extend(TempLatLng);
-  } 
+  }
   map.fitBounds(bounds);
 
   // Create a marker and set its position.

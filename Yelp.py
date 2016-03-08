@@ -108,9 +108,11 @@ def yelp_search(location, distance, term, category_filter = "", sort = 0, offset
   if results == (0, []):
     return []
   count = 0
+
   for result in results:
-    result_list.append(dict_to_list(result, ALPHABET[count]))
-    count+=1
+    if result["distance"] < float(distance):
+      result_list.append(dict_to_list(result, ALPHABET[count]))
+      count+=1
   return result_list
 
 

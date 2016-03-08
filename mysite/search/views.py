@@ -2,12 +2,14 @@ from django.shortcuts import render
 import sys
 import os
 import re
+import numpy as np
 current_path=os.path.abspath(os.curdir)
 project_path=os.path.abspath("..")+"/"
 sys.path.insert(0, project_path)
 import zillow
 import sql_stuff
 import Yelp
+import ranking
 
 DATABASE_CATEGORIES=["Violent crimes", "Property crimes", "Other victimed non-violent crimes", "Quality of life crimes"]#, "bike_racks", "fire", "police"]
 def about(request):
@@ -19,7 +21,7 @@ def homepage(request):
 	c['names'] = 'Pedro, Eric, Ryan'
 	c['current_distance'] = request.POST.get('distance', 1000)
 	c['current_loc']= request.POST.get('location', 60637)
-	c["current_price_upper_limit"] =request.POST.get("price_upper_limit", 2000)
+	c["current_price_upper_limit"] =request.POST.get("price_upper_limit", 650)
 	c["current_price_lower_limit"] =request.POST.get("price_lower_limit", 0)
 	c["current_min_bathroom"] =request.POST.get("min_bathroom", 0)
 	c["current_min_bedroom"] =request.POST.get("min_bedroom", 0)
@@ -74,13 +76,29 @@ def results(request):
 			errors.append("no data available for year {}".format(year))
 		database_name=str(year.strip())+".db"
 	weights=[]
-	for j in range(1,12):
+	for j in range(1,16):
 		try:
 			weights.append(float(request.POST.get("pref_"+str(j))))
 		except:
 			errors.append("Survey question {} was not filled in".format(j))
+	try:
+		house_type1=request.POST.get("house_type1")
+		house_type2=request.POST.get("house_type2")
+		house_type3=request.POST.get("house_type3")
+		assert house_type1 != None
+		try:
+			assert house_type1 != house_type2 and house_type1 != house_type3
+		except:
+			errors.append("House types repeat")
+		if house_type2 == None and house_type3 != None:
+			errors.append("Invalid ordering")
+		house_types = []
+		house_types.append(house_type1)
+		house_types.append(house_type2)
+		house_types.append(house_type3)
+	except:
+		errors.append("Need first field for house type preference")
 
-	house_type=request.POST.get("house_type")
 	listing_type=request.POST.get("listing_type")
 
 	try:
@@ -126,11 +144,13 @@ def results(request):
                       ["bathroom", current_min_bathroom, current_max_bathroom, None, 100],["size", 0, 10000, None, 100], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
 	
 	print("Querying zillow...")
-	url=zillow.create_url(loc, listing_type, criteria_list)
-	soup=zillow.get_soup(url)
-	result=zillow.create_house_objects(soup)
+	#url=zillow.create_url(loc, listing_type, criteria_list)
+	#soup=zillow.get_soup(url)
+	#result=zillow.create_house_objects(soup)
+	result = ranking.get_house_list(loc, listing_type, criteria_list)
 	print("Done. Found {} matching properties".format(len(result)))
-	Yelp_pref,database_pref=weights[:7],weights[7:]
+	zillow_pref, Yelp_pref, database_pref=weights[:4],weights[4:11], weights[11:]
+	#print(zillow_prep, Yelp_pref, database_pref)
 	#they have been ordered
 	list_of_house_coords=[(j.lat,j.long) for j in result]
 	scores=[]
@@ -149,7 +169,19 @@ def results(request):
 	for l in database_results:
 		house_scores=[l[j][1] for j in DATABASE_CATEGORIES]
 		database_scores.append(house_scores)
-	print(database_scores)
+	total_scores = []
+	for i in range(len(Yelp_results)):
+		total_scores.append(Yelp_results[i]+database_scores[i])
+	# FOR ERIC
+	# WEIGHTS FOR ZILLOW IN ORDER OF PRICE, HOUSETYPE, BATHROOM, BEDROOM: zillow_pref
+	# LIST OF HOUSE TYPES: house_types
+	# PEDROS AND RYANS SCORES: total_scores
+	# PEDROS AND RYANS WEIGHTS: database_pref, Yelp_pref
+
+	
+	print(zillow_pref, database_pref, Yelp_pref, house_types, total_scores)
+
+	'''
 	for j in range(len(Yelp_results)):
 	#for j in range(len(fake_yelp)):
 		#fake_yelp[j]+=database_scores[j]
@@ -163,7 +195,7 @@ def results(request):
 		print("property {} has score {}".format(result[j].address,result[j].score))
 	result = sorted(result, key=lambda x: x.score)
 	result.reverse()
-
+	'''
 	c={'results': result}
 	return render(request, 'search/results.html', c)
 
@@ -183,7 +215,7 @@ def detailed_results(request):
 		else:
 			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), c['current_distance'], c['current_term'], c['current_cat'])
 		
-	
+	print(c['results'])
 	address = request.POST.get("address")
 	
 	c["address"] = address
