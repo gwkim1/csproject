@@ -12,7 +12,7 @@ class House:
 		'''
 		if there are multiple matching list, we need to approach 
 
-		We assign: address, price, doz, built_year, bedroom, bathroom, size, listing_type and lat/long
+		We assign: address, price, doz, built_year, bedroom, bathroom, size, and lat/long
 		'''
 		# Just for debugging purpose. will delete later
 		self.article = house_article

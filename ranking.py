@@ -13,11 +13,32 @@ What hasn't been done yet:
 3. get_house_list doesn't work(because of create_array) and is too slow
 '''
 
+
+
+
+
+
+
+'''
+PEDRO AND RYAN: use get_house_list to get a list of houses that meets the criteria in zillow
+
+zipcode: zipcode
+listing_type: either "rent" or "sale"
+
+example of a criteria list that includes all possible criteria:
+criteria_list =  [["price", 20000, 80000, None, 300], ["bedroom", 1, 3, None, 400], ["bathroom", 1, 3, None, 400], ["size", 900, 1300, None, 100], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
+first entry: name of criterion
+second ~ second last:
+    for numerical variable: minimum, maximum, ideal value that user optionally may choose(you may just write None for this)
+    for categorical variable: values in the most preferred order. for example, "houses", "apartments", "condos/co-ops"
+last entry: weights that users assign to each criterion. only relative values matter
+'''
+
 def get_house_list(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup)
-    print("before running create_array:", house_list)
+    #print("before running create_array:", house_list)
     new_house_list = create_array(house_list, criteria_list, return_list=True)
     return new_house_list
 
