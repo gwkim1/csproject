@@ -7,14 +7,16 @@ import re
 
 class House:
 	# Need to work more on this
-	def __init__(self, house_article, unit_info = None):
+	def __init__(self, house_article, unit_info = None, missing_value=False):
 
 		'''
 		if there are multiple matching list, we need to approach 
 
 		We assign: address, price, doz, built_year, bedroom, bathroom, size, listing_type and lat/long
 		'''
-		
+		# Just for debugging purpose. will delete later
+		self.article = house_article
+
 		property_info = house_article.find("div", {'class': 'property-info'})
 
 		self.lat = float(house_article["latitude"])/1000000
@@ -38,20 +40,28 @@ class House:
 			# what about self.doz?
 			self.doz = -1
 			# house_type is also not done
-			self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
+	
+			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
+				missing_value = True
+			else:
+				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
 		
 		else:
+			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
+				missing_value = True
+			else:
+				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
+			#self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
-			self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
-
-
+			# This is wrong. zestimate shouldn't be used. should follow link instead.
 			if property_info.find('dt', {'class': 'price-large'}) == None:
+				missing_value = True
 				# Need to check this once
 				# I don't think zestimate equals price. They are totally different.
-				if property_info.find('dt', {'class': 'zestimate'}) == None:
-					print(property_info.find('dt', {'class': 'zestimate'}))
-				self.price = extract_numbers(property_info.find('dt', {'class': 'zestimate'}).text) * 1000
+				#if property_info.find('dt', {'class': 'zestimate'}) == None:
+					#print(property_info.find('dt', {'class': 'zestimate'}))
+				#self.price = extract_numbers(property_info.find('dt', {'class': 'zestimate'}).text) * 1000
 			#elif property_info.find('dt', {'class': 'price-large'}).text[0] == "$":
 				#self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
 				#self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
@@ -105,22 +115,53 @@ class House:
 				# This is problematic. Need to change to None later
 				self.built_year = 0
 
-		# Not sure if this would work.
-		# this has become useless
-		if "For Rent" in property_info.find("dt", {"class": "listing-type"}).text:
-			self.listing = "for rent"
-		else:
-			self.listing = "for sale"
 
-		#if property_info.find('meta', {'itemprop': 'latitude'}) == None:
-		#	print("this went wrong", property_info)
+
+		if missing_value:
+			print("we will run follow_link")
+			self.follow_link(house_article)
 
 		# Need to check back on this
 		self.info_dict = {"price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
 		
 		self.weighted_score = 0
 
+# This has to be a part of House object
+	def follow_link(self, house_article):
+		link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
+		new_soup = get_soup(link)
+
+		top_facts = new_soup.find("div", {"class": "top-facts"}).find_all("li")
+		for fact in top_facts:
+			if fact.text in HOUSE_TYPE_DICT_2:
+				self.house_type = HOUSE_TYPE_DICT_2[fact.text]
+				#print(house_type)
+			#return
+
+		self.price = extract_numbers(new_soup.find("div", {"class": "main-row"}).text)
+
+
+NEW_LINK_DICT = {
+"address": ['span', {'itemprop': 'streetAddress'}],
+"latlong": ['meta', {'itemprop': re.compile(r'^(latitude|longitude)$')}],
+"house/listing": [],
+"price": ['dt', {'class': 'price-large'}],
+"bedroom": ['span', {'class': 'beds-baths-sqft'}],
+"bathroom": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"size": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"built_year": ['span', {'class': 'built-year'}],
+"days_on_zillow": ['dt', {'class': 'doz'}],
+}
+
+#self.price = extract_numbers(link_soup.find("div", {"class": "main-row"}).text)
+# house_type isn't working.
+
+#self.house_type = link_soup.find("div", {"class": "top-facts"}).find_all("li")
+
 # Is there a way to use regular expression here for s's?
+
+HOUSE_TYPE_DICT_2 = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Cooperative": "condos/co-ops"}
+
 HOUSE_SEARCH_DICT = {"Co-op": "condos/co-ops", "Condo": "condos/co-ops", "Condos": "condos/co-ops", "Apartment": "apartments", "Apartments": "apartments"}
 
 HOUSE_TYPE_DICT = {"houses": "house", "apartments": "apartment_duplex", "condos/co-ops": "condo", "townhomes": "townhouse", "manufactured": "mobile", "lots/land": "land"}
@@ -387,6 +428,7 @@ COMMAND_DICT = {
 "days_on_zillow": ['dt', {'class': 'doz'}],
 }
 
+# .find(COMMAND_DICT[key]) works.
 
 #def get_house_info(soup, output_info = []):
 '''

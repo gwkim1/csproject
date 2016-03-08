@@ -17,8 +17,26 @@ def get_house_list(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup)
+    print("before running create_array:", house_list)
     new_house_list = create_array(house_list, criteria_list, return_list=True)
     return new_house_list
+
+
+def get_house_list_alt(zipcode, listing_type, criteria_list):
+    url = zillow.create_url(zipcode, listing_type, criteria_list)
+    soup = zillow.get_soup(url)
+    house_list = zillow.create_house_objects(soup)
+    print(house_list)
+    #new_house_list = create_array(house_list, criteria_list, return_list=True)
+    return house_list
+
+
+def get_final_scores():
+    pass
+
+
+
+
 
 
 def concatenate_arrays(array_list):
@@ -57,7 +75,6 @@ def create_array(house_list, criteria_list, return_list=False):
     Output:
     returns a numpy array filled with either 0 or None
 
-
     I may have to delete the "deleting" part, but I need this just in case zillow returns
     So while the criteria_list is the same as what we put in in create_url, what pedro and ryan should use
     is the house_list that this function outputs.
@@ -72,32 +89,26 @@ def create_array(house_list, criteria_list, return_list=False):
     for j in range(len(criteria_list)):
         criteria_dict[j] = criteria_list[j]
     
-    score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
-    #print("score_array", score_array)
-    #print(len(criteria_list))
-    #print(len(house_list))
-    need_to_delete = set()
+    #print(house_dict)
+    #print(criteria_dict)
 
-    #score_array = np.delete(score_array, i, 0)
-    #del house_list[i]
-    
+    score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
+
+    need_to_delete = set()
     
     for i in range(len(house_list)):
         for j in range(len(criteria_list)):
             if type(criteria_dict[j][1]) == str:
-                if not house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]:
+                if not (house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]):
+                    #print(house_dict[i].info_dict[criteria_dict[j][0]], "not in", criteria_dict[j])
+                    #print(criteria_dict[j][0])
+                    #print(house_dict[i].info_dict)
                     # array only accepts numbers!!! need to change this default value
                     #score_array[i][j] = -1
                     need_to_delete.add(i)
                     print("house", i, "does not meet criterion", j)
-            else:
-                print(type(house_dict[i].info_dict[criteria_dict[j][0]]))
-                print(type(criteria_dict[j][1]))
-                print(criteria_dict[j])
-                print(house_dict[i].info_dict[criteria_dict[j][0]])
-                print(house_dict[i].info_dict)
-                print(criteria_dict[j][2])
-                
+                    print(house_dict[i].info_dict[criteria_dict[j][0]])
+            else:                
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
                     print("house", i, "does not meet criterion", j)
@@ -111,14 +122,19 @@ def create_array(house_list, criteria_list, return_list=False):
         need_to_delete.reverse()
     #print("need_to_delete:", need_to_delete)
 
+
+    temp_deleted_list = []
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
+        temp_deleted_list.append(house_list[i])
         del house_list[i]        
 
-    if return_list == True:
-        return house_list
+    return temp_deleted_list
+    #print(house_list)
+    #if return_list == True:
+    #    return house_list
 
-    return score_array
+    #return score_array
     
 
 IDEAL_VALUE = {}
