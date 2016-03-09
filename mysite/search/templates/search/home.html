@@ -11,7 +11,6 @@ body {
 </head>
 <title> main page </title>
 <p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
-
 <ul>
   {% for error in errors %}
   <li> {{ error }} </li>
@@ -49,14 +48,15 @@ body {
   <label for="listing_type3">Are you buying or renting? </label>
   <select name="listing_type">
     <option id="listing_type" name="listing_type" value="sale"> Buying </option>
-    <option id="listing_type" name="listing_type" value="rent" selected> Renting </option>
+    <option id="listing_type" name="listing_type" value="rent"> Renting </option>
   </select>
   <br><br>
 	<label for="distance">As a user, how do you define nearby?</label>
 	<input id="distance" type="number" name="distance" value="{{ current_distance }}">
   <select name="distance_type">
+    <option id="distance_type" name="distance_type" value="meters"> Meters </option>
     <option id="distance_type" name="distance_type" value="miles"> Miles </option>
-    <option id="distance_type" name="distance_type" value="meters" selected> Meters </option>
+    
   </select>
   <br><br>
   Price (monthly):
@@ -93,43 +93,6 @@ body {
   <input type="submit" value="Search">
 </form>
 
-
-<head>
-    <style type="text/css">
-      html, body { height: 100%; margin: 0; padding: 0; }
-      #map { height: 30%; width: 30%; }
-    </style>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script type="text/javascript">
-
-function initMap() {
-  var myLatLng = {lat: {{ current_lat }}, lng: {{ current_long }}};
-
-  // Create a map object and specify the DOM element for display.
-  var map = new google.maps.Map(document.getElementById('map'), {
-    center: myLatLng,
-    scrollwheel: false,
-    zoom: 18
-  });
-
-  // Create a marker and set its position.
-
-  var marker = new google.maps.Marker({
-    map: map,
-    position: myLatLng,
-    title: 'Pedro\'s House',
-    label: 'Basdf'
-  });
-}
-
-
-    </script>
-    <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr6T8_7bIcbN1f4ntweV-iSTWreb0PtBI&callback=initMap">
-    </script>
-  </body>
 
 
 </html>

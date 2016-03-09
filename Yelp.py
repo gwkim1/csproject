@@ -4,7 +4,7 @@ import time
 
 # Note if the Yelp search does not work it may be due to expired time stamp, reboot VM to solve this issue
 
-
+# Keys for API
 CONSUMER_KEY = "_c-Jb5bdZr9eMlFpyrcx7g"
 CONSUMER_SECRET = "6EPdVZpPAPREEcG-jpga1hPMhlk"
 TOKEN = "1pRf9RrQKu7xdpkePMkAAbrCV9E-zr7W"
@@ -21,20 +21,18 @@ ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 
 
 def get_results(params):
-  session = rauth.OAuth1Session(
-  consumer_key = CONSUMER_KEY
-  ,consumer_secret = CONSUMER_SECRET
-  ,access_token = TOKEN
-  ,access_token_secret = TOKEN_SECRET)
+  # This function is from http://letstalkdata.com/2014/02/how-to-use-the-yelp-api-in-python/
+  session = rauth.OAuth1Session(consumer_key = CONSUMER_KEY, consumer_secret = CONSUMER_SECRET
+  ,access_token = TOKEN, access_token_secret = TOKEN_SECRET)
   request = session.get("http://api.yelp.com/v2/search", params = params)
-  #Transforms the JSON API response into a Python dictionary
   data = request.json()
   session.close()
   return data
 
 
-def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=0):
-  #See the Yelp API for more details
+def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=0, offset = 0):
+  # See the Yelp API for more details
+  # This function is a modified from http://letstalkdata.com/2014/02/how-to-use-the-yelp-api-in-python/
   '''
   Possible Filters
   term
@@ -56,6 +54,8 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=
     params["category_filter"] = category_filter
   if sort !=0:
     params["sort"] = sort
+  if offset !=0:
+    params["offset"] = offset
   return params
 
 
@@ -68,6 +68,7 @@ def get_score(locations, category_filter, radius):
       score = 0 
     else:
       if count > 20:
+        # Makes additional requests to get more than 20 results
         iterations = math.ceil(count/20)-1
         offset = 20
         for i in range(iterations):
@@ -75,12 +76,12 @@ def get_score(locations, category_filter, radius):
           offset+=20
           results+=additional_result
       score = 0
-
+      # Our yelp score is based on the aggregate ratings
       for result in results:
         score += result["rating"]
     location_raw_scores.append(score)
 
-  
+  # Reduces the max score down to 1, and calculates other score relative to the max
   max_score = 0
   for score in location_raw_scores:
     if score > max_score:
@@ -91,7 +92,11 @@ def get_score(locations, category_filter, radius):
     new_scores = [x / max_score for x in location_raw_scores]
   return new_scores
 
+
+
+
 def get_yelp_scores(locations, distance, preferences):
+  # Calculates the score for each category, only if the user cares about the category
   score_list_category = []
   for i in range(len(CATEGORIES)):
     if preferences[i] == 0:
@@ -101,9 +106,11 @@ def get_yelp_scores(locations, distance, preferences):
   score_list_location = list(map(list, zip(*score_list_category)))
   return score_list_location
 
+
+
 def yelp_search(location, distance, term, category_filter = "", sort = 0, offset = 0):
-  # returns list in order of name, distance, rating, # of reviews, location
-  results = search(location, term = term, radius = distance, category_filter = category_filter, sort = sort)
+  # returns list in order of name, distance, rating, # of reviews, location, letter
+  total, results = search(location, term = term, radius = distance, category_filter = category_filter, sort = sort, count = True, offset=offset)
   result_list = []
   if results == (0, []):
     return []
@@ -113,10 +120,11 @@ def yelp_search(location, distance, term, category_filter = "", sort = 0, offset
     if result["distance"] < float(distance):
       result_list.append(dict_to_list(result, ALPHABET[count]))
       count+=1
-  return result_list
+  return result_list, total
 
 
 def dict_to_list(dictionary, letter):
+  # Converts dictionary to list in wanted format
   categories = ""
   for i in dictionary["categories"]:
     categories += i[0]+" "
@@ -124,20 +132,20 @@ def dict_to_list(dictionary, letter):
    dictionary["review_count"], dictionary["location"]["latitude"], dictionary["location"]["longitude"], letter.upper()]
   return output
 
+
 def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_filter = "", offset = 0, count= False, sort = 0):
   '''
   locations: tuple representing longlat pairs
   '''
   lat = location[0]
   long = location[1]
-  params = get_search_parameters(lat, long, term, radius, limit, category_filter)
+  print(offset)
+  params = get_search_parameters(lat, long, term, radius, limit, category_filter, offset = offset)
   api_call = get_results(params)
+  print(api_call)
   if "businesses" not in api_call.keys():
     return 0, []
-  
-  #Be a good internet citizen and rate-limit yourself
   time.sleep(1.0)
-  #location.coordinate
   variable_list = ["name", "distance", "location","rating", "review_count", "phone", "categories"]
   results = []
   for business in api_call["businesses"]:
@@ -152,19 +160,3 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
   if count:
     return api_call["total"], results
   return results
-
-
-
-  '''
-def main():
-  locations = [(41.783213,-87.601375)]
-  api_calls = []
-  for lat,long in locations:
-    params = get_search_parameters(lat,long)
-    api_calls.append(get_results(params))
-
-    #Be a good internet citizen and rate-limit yourself
-    time.sleep(1.0)
-    #print(api_calls)
-  print ([api_calls[0]["businesses"][i]["name"] for i in range(len(api_calls[0]["businesses"]))])
-'''

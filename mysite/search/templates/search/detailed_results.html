@@ -5,8 +5,8 @@
     <style type = "text/css">
 body {
 
-    background-image: url("http://klineandcorealestate.com/sites/default/files/Real-Estate-1.jpg");
-    background-repeat: repeat-x;
+    background-image: url("https://wallpaperscraft.com/image/surface_network_light_background_texture_50497_1920x1200.jpg");
+    background-repeat: repeat-y;
 }
 </style>
 </head>
@@ -19,8 +19,9 @@ body {
     <label for="distance">Distance: </label>
     <input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}">
     <select name="distance_type">
+      <option id="distance_type" name="distance_type" value="meters"> Meters </option>
       <option id="distance_type" name="distance_type" value="miles"> Miles </option>
-      <option id="distance_type" name="distance_type" value="meters" selected> Meters </option>
+      
     </select>
     </br>
     <label for="term">Search Yelp: </label>
@@ -33,18 +34,23 @@ body {
     {% for category in categories %}
     <input type="radio" name="cat" value="{{category}}"> {{category}}
     {% endfor %}
-    <input type="submit" value="OK">
-
-
-
-
-
-</form>
+  <br>
+  Page: {{current_page}}<br>
+  <label for = "page">Go to new page:</label>
+  <select name="page">
+  {% for page in pages %}
+  <option id='page' name='page' value= "{{page}}"> {{page}}  </option>;
+  {% endfor %}
+</select>
+<br>
+<input type="submit" value="OK">
+</form>  
 <p> Yelp Search Results:</p>
   {% for result in results %}
   <p> {{result.6}}:   {{result.0}}  Rating: {{result.2}} # of Ratings: {{result.3}} </p>
   {% endfor %} 
 <p> 1 Property </p>
+
 
 
 

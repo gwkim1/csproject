@@ -3,6 +3,7 @@ import sys
 import os
 import re
 import numpy as np
+import math
 current_path=os.path.abspath(os.curdir)
 project_path=os.path.abspath("..")+"/"
 sys.path.insert(0, project_path)
@@ -222,6 +223,9 @@ def detailed_results(request):
 	c['current_distance'] = request.POST.get('distance', 500)
 	c['current_term'] = request.POST.get('term', "food")
 	c['current_cat'] = request.POST.get('cat')
+	
+	page = request.POST.get('page')
+	print(page)
 	#print(c['current_cat'])
 	
 	c['categories'] = ["all","restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
@@ -233,10 +237,12 @@ def detailed_results(request):
 		distance = 40000
 	if c['current_term'] != "":
 		if c['current_cat'] == "all":
-			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'])
+			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
 		else:
-			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'])
-		
+			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
+	
+	c['pages'] = list(range(1,math.ceil(total/20)+1))
+	c['current_page'] = page
 	print(c['results'])
 	address = request.POST.get("address")
 	

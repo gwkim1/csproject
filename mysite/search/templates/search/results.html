@@ -1,4 +1,14 @@
 <html> 
+<head>
+    <!-- Sets the background image -->
+    <style type = "text/css">
+body {
+
+    background-image: url("https://wallpaperscraft.com/image/surface_network_light_background_texture_50497_1920x1200.jpg");
+    background-repeat: repeat-y;
+}
+</style>
+</head>
 <title> Results</title>
 
 <h1> Here are your results </h1>
@@ -8,7 +18,10 @@
     <li> 
     <form method="post" action="{% url 'detailed_results'%}">
     	{% csrf_token %}
-    	<p> We ranked {{ result.address }} with a score of {{ result.score }}</p>
+    	<p> {{ result.address }}<br> Price: ${{result.price}}<br> Score: {{ result.score }}
+        <br> Type: {{ result.house_type }}<br> Bathrooms: {{ result.bathroom }}<br> Bedrooms: {{ result.bedroom }}
+        <br> Size: {{ result.size }}
+        </p>
     <input type="hidden" name="address" value=" {{ result.address }}">
     <input type="hidden" name="lat" value=" {{ result.lat }}">
     <input type="hidden" name="long" value=" {{ result.long }}">
