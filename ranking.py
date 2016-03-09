@@ -37,7 +37,7 @@ def get_house_list(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup)
-    #print("before running create_array:", house_list)
+    print("num of houses before running create_array:", len(house_list))
     new_house_list = create_array(house_list, criteria_list, return_list=True)
     return new_house_list
 
@@ -46,7 +46,7 @@ def get_house_list_alt(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup)
-    print(house_list)
+    #print(house_list)
     #new_house_list = create_array(house_list, criteria_list, return_list=True)
     return house_list
 
@@ -57,6 +57,7 @@ a list of tuples with each tuple being like (rank, house address, score, House o
 Need to change the same of the arguments so that they are intuitive
 '''
 def get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref):
+    total_scores = np.array(total_scores)
     array_list = [score_array, total_scores]
     weight_list = zillow_pref + database_pref + Yelp_pref
     new_array = concatenate_arrays(array_list)
@@ -132,16 +133,16 @@ def create_array(house_list, criteria_list, return_list=False):
                     # array only accepts numbers!!! need to change this default value
                     #score_array[i][j] = -1
                     need_to_delete.add(i)
-                    #print("house", i, "does not meet criterion", j)
-                    #print(house_dict[i].info_dict[criteria_dict[j][0]])
+                    print("house", i, "does not meet criterion", j)
+                    print(house_dict[i].info_dict[criteria_dict[j][0]])
             else:    
                 #print("let's check")
                 #print(house_dict[i].info_dict[criteria_dict[j][0]])
                 #print(criteria_dict[j])                        
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
-                    #print("house", i, "does not meet criterion", j)
-                    #print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
+                    print("house", i, "does not meet criterion", j)
+                    print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
     
     #print("need_to_delete:", need_to_delete)
     #print(len(need_to_delete))
