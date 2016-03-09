@@ -9,30 +9,29 @@ Ideas for improvement:
 
 What hasn't been done yet:
 1. tiebreaking?
-2. dealing with the "ideal value"
-3. get_house_list doesn't work(because of create_array) and is too slow
+2. get_house_list doesn't work(because of create_array) and is too slow
 '''
-
-
-
 
 
 
 
 '''
 PEDRO AND RYAN: use get_house_list to get a list of houses that meets the criteria in zillow
+3/8 NOTE: the format of criteria_list has changed. nothing too different. I just deleted ideal_value and weight because we don't need this in my function
+
+USE GET_HOUSE_LIST instead of GET_HOUSE_LIST_ALT
 
 zipcode: zipcode
 listing_type: either "rent" or "sale"
 
 example of a criteria list that includes all possible criteria:
-criteria_list =  [["price", 20000, 80000, None, 300], ["bedroom", 1, 3, None, 400], ["bathroom", 1, 3, None, 400], ["size", 900, 1300, None, 100], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
+criteria_list =  [["price", 20000, 80000], ["bedroom", 1, 3], ["bathroom", 1, 3], ["size", 900, 1300], ["house_type", "houses", "apartments", "condos/co-ops"]]
 first entry: name of criterion
-second ~ second last:
-    for numerical variable: minimum, maximum, ideal value that user optionally may choose(you may just write None for this)
+second ~ last:
+    for numerical variable: minimum, maximum value
     for categorical variable: values in the most preferred order. for example, "houses", "apartments", "condos/co-ops"
-last entry: weights that users assign to each criterion. only relative values matter
 '''
+
 
 def get_house_list(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
@@ -51,39 +50,36 @@ def get_house_list_alt(zipcode, listing_type, criteria_list):
     #new_house_list = create_array(house_list, criteria_list, return_list=True)
     return house_list
 
+'''
+FOR RYAN AND PEDRO: when your website gives the scores and weights back run get_final_scores to get
+a list of tuples with each tuple being like (rank, house address, score, House object)
 
-def get_final_scores():
-    pass
-
-
-
-
-
-
-def concatenate_arrays(array_list):
-    '''
-    concatenates all numpy arrays
-    '''
-    new_arr = array_list[0]
-    for arr in array_list[1:]:
-        new_arr = np.append(new_arr, arr, axis=1)
-    return new_arr
+Need to change the same of the arguments so that they are intuitive
+'''
+def get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref):
+    array_list = [score_array, total_scores]
+    weight_list = zillow_pref + database_pref + Yelp_pref
+    new_array = concatenate_arrays(array_list)
+    weighted_array = get_weighted_score(new_array, criteria_list, weight_list)
+    show_ranking(weighted_array, house_list)
 
 
-def suggest_house(house_list, criteria_list):
+
+
+def suggest_house(house_list, criteria_list, weight_list):
     '''
     This is a function that combines all functions under
 
     house_list: [House, House, House] House objects
-    criteria_list: [["price", 1000, 2000, None, 300], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
-    for numerical criterion: [criterion name, lower bound, upper bound, ideal value, weight]
-    for categorical criterion: [criterion name, first choice, second choice .... nth choice, weight]
+    criteria_list: [["price", 1000, 2000], ["house_type", "houses", "apartments", "condos/co-ops"]]
+    for numerical criterion: [criterion name, lower bound, upper bound]
+    for categorical criterion: [criterion name, first choice, second choice .... nth choice]
 
     returns a list with each tuple being: (ranking, address, score, house object)
     '''
     arr = create_array(house_list, criteria_list)
     score_array = calculate_preference(arr, house_list, criteria_list)
-    weighted_array = get_weighted_score(score_array, criteria_list)
+    weighted_array = get_weighted_score(score_array, criteria_list, weight_list)
     return show_ranking(weighted_array, house_list)
 
 
@@ -117,9 +113,18 @@ def create_array(house_list, criteria_list, return_list=False):
 
     need_to_delete = set()
     
+    #print(house_list)
+
     for i in range(len(house_list)):
         for j in range(len(criteria_list)):
+            #print(criteria_dict[j])
+            #print(criteria_dict[j][1])
+            #print(type(criteria_dict[j][1]))
             if type(criteria_dict[j][1]) == str:
+                #print("let's check")
+                #print(house_dict[i].info_dict[criteria_dict[j][0]])
+                #print(criteria_dict[j])
+
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]):
                     #print(house_dict[i].info_dict[criteria_dict[j][0]], "not in", criteria_dict[j])
                     #print(criteria_dict[j][0])
@@ -127,16 +132,19 @@ def create_array(house_list, criteria_list, return_list=False):
                     # array only accepts numbers!!! need to change this default value
                     #score_array[i][j] = -1
                     need_to_delete.add(i)
-                    print("house", i, "does not meet criterion", j)
-                    print(house_dict[i].info_dict[criteria_dict[j][0]])
-            else:                
+                    #print("house", i, "does not meet criterion", j)
+                    #print(house_dict[i].info_dict[criteria_dict[j][0]])
+            else:    
+                #print("let's check")
+                #print(house_dict[i].info_dict[criteria_dict[j][0]])
+                #print(criteria_dict[j])                        
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
-                    print("house", i, "does not meet criterion", j)
-                    print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
+                    #print("house", i, "does not meet criterion", j)
+                    #print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
     
     #print("need_to_delete:", need_to_delete)
-
+    #print(len(need_to_delete))
     if len(need_to_delete) != 0:
         need_to_delete = list(need_to_delete)
         need_to_delete.sort()
@@ -144,21 +152,19 @@ def create_array(house_list, criteria_list, return_list=False):
     #print("need_to_delete:", need_to_delete)
 
 
-    temp_deleted_list = []
+    #temp_deleted_list = []
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
-        temp_deleted_list.append(house_list[i])
+        #temp_deleted_list.append(house_list[i])
         del house_list[i]        
 
-    return temp_deleted_list
+    #return temp_deleted_list
     #print(house_list)
-    #if return_list == True:
-    #    return house_list
+    if return_list == True:
+        return house_list
 
-    #return score_array
+    return score_array
     
-
-IDEAL_VALUE = {}
 
 
 def calculate_preference(array, house_list, criteria_list):
@@ -186,7 +192,7 @@ def calculate_preference(array, house_list, criteria_list):
                 pref_value = house_list[row].info_dict[criteria_list[col][0]]
             else:
                 # prbly consider case in which the value in a cell is 0, not a string.
-                pref_value = (len(criteria_list[col][1:-1]) - (criteria_list[col][1:-1].index(house_list[row].info_dict[criteria_list[col][0]]))) / len(criteria_list[col][1:-1])
+                pref_value = (len(criteria_list[col][1:]) - (criteria_list[col][1:].index(house_list[row].info_dict[criteria_list[col][0]]))) / len(criteria_list[col][1:])
                 #print(criteria_list[col])
                 #print("house_list[row].info_dict[criteria_list[col][0]]", house_list[row].info_dict[criteria_list[col][0]])
                 #print(criteria_list[col][1:-1].index("houses")) #- ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
@@ -200,13 +206,37 @@ def calculate_preference(array, house_list, criteria_list):
             else:
                 array[row][col] = (pref_value - indifference) * 100 / (preference - indifference)
     return array
+    
+
+def concatenate_arrays(array_list):
+    '''
+    concatenates all numpy arrays
+    '''
+    new_arr = array_list[0]
+    for arr in array_list[1:]:
+        new_arr = np.append(new_arr, arr, axis=1)
+    return new_arr
 
 
-def get_weighted_score(score_array, criteria_list):
+'''
+weight_list has to be the addition of the three weight_lists:
+zillow_pref + database_pref + Yelp_pref
+'''
+def get_weighted_score(score_array, weight_list):
     total_weight = 0
-    for ctuple in criteria_list:
-        total_weight += ctuple[-1]
-    weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
+    for weight in weight_list:
+        total_weight += weight
+    weight_array = np.array([[weight_list[i]/total_weight] for i in range(len(weight_list))])
+    #for ctuple in criteria_list:
+    #    total_weight += ctuple[-1]
+    #    print(ctuple[-1])
+    #print(criteria_list[0][-1])
+    #print(criteria_list[0])
+    #weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
+
+    '''
+    need to add list of weights that Pedro and Ryan would pass me back to weight_array
+    '''
     return np.dot(score_array, weight_array)
 
 

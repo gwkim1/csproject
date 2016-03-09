@@ -7,7 +7,7 @@ import re
 
 class House:
 	# Need to work more on this
-	def __init__(self, house_article, unit_info = None, missing_value=False):
+	def __init__(self, house_article, unit_info = None):
 
 		'''
 		if there are multiple matching list, we need to approach 
@@ -16,6 +16,7 @@ class House:
 		'''
 		# Just for debugging purpose. will delete later
 		self.article = house_article
+		self.missing_value = False
 
 		property_info = house_article.find("div", {'class': 'property-info'})
 
@@ -43,21 +44,26 @@ class House:
 			# house_type is also not done
 	
 			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
-				missing_value = True
+				self.house_type = ""
+				print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
+				self.missing_value = True
 			else:
 				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
 		
 		else:
 			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
-				missing_value = True
+				self.house_type = ""
+				print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
+				self.missing_value = True
 			else:
 				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 			#self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
 			# This is wrong. zestimate shouldn't be used. should follow link instead.
 			if property_info.find('dt', {'class': 'price-large'}) == None:
-				missing_value = True
+				print("price missing")
+				self.missing_value = True
 				# Need to check this once
 				# I don't think zestimate equals price. They are totally different.
 				#if property_info.find('dt', {'class': 'zestimate'}) == None:
@@ -118,11 +124,13 @@ class House:
 
 
 
-		if missing_value:
+		if self.missing_value:
 			print("we will run follow_link")
 			self.follow_link(house_article)
+			print("after follow_link, house_type:", self.house_type)
 
 		# Need to check back on this
+		print(self.house_type)
 		self.info_dict = {"price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
 		
 		self.weighted_score = 0
@@ -140,8 +148,9 @@ class House:
 			#return
 
 		self.price = extract_numbers(new_soup.find("div", {"class": "main-row"}).text)
+		print("within follow_link", self.house_type, self.price)
 
-
+# I don't think I'm using this dictionary
 NEW_LINK_DICT = {
 "address": ['span', {'itemprop': 'streetAddress'}],
 "latlong": ['meta', {'itemprop': re.compile(r'^(latitude|longitude)$')}],
@@ -163,7 +172,7 @@ NEW_LINK_DICT = {
 
 HOUSE_TYPE_DICT_2 = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Cooperative": "condos/co-ops"}
 
-HOUSE_SEARCH_DICT = {"Co-op": "condos/co-ops", "Condo": "condos/co-ops", "Condos": "condos/co-ops", "Apartment": "apartments", "Apartments": "apartments"}
+HOUSE_SEARCH_DICT = {"co-op": "condos/co-ops", "condo": "condos/co-ops", "condos": "condos/co-ops", "apartment": "apartments", "apartments": "apartments", "houses": "houses", "house": "houses"}
 
 HOUSE_TYPE_DICT = {"houses": "house", "apartments": "apartment_duplex", "condos/co-ops": "condo", "townhomes": "townhouse", "manufactured": "mobile", "lots/land": "land"}
 
@@ -179,10 +188,11 @@ def get_house_list(zipcode, listing_type, criteria_list):
 
 def get_house_type(type_str):
     house_type = ""
-    if "For Sale" in type_str:
-        type_str = type_str.replace("For Sale", "").strip()
-    elif "For Rent" in type_str:
-        type_str = type_str.replace("For Rent", "").strip()
+    type_str = type_str.lower()
+    if "for sale" in type_str:
+        type_str = type_str.replace("for sale", "").strip()
+    elif "for rent" in type_str:
+        type_str = type_str.replace("for rent", "").strip()
     #print(type_str)
     #print(len(type_str))
     for search_term in HOUSE_SEARCH_DICT:
@@ -190,7 +200,7 @@ def get_house_type(type_str):
             house_type = HOUSE_SEARCH_DICT[search_term]        
             return house_type
 
-    return house_type 
+    return house_type
 		
 
 def create_house_objects(soup):
@@ -297,7 +307,7 @@ def create_url(zipcode, listing_type, criteria_list):
 
 	if listing_type == "sale":
 		base_url += "for_sale/"
-		end_url = "0_mmm/"
+		end_url = "/0_mmm/"
 	else:
 		base_url += "for_rent/"
 
