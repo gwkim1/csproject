@@ -37,16 +37,29 @@ class House:
 		if unit_info != None:
 			self.price = extract_numbers(unit_info.find("td", {"class": "building-units-price"}).text)
 			self.bedroom = eval(unit_info["data-bedroom"])
-			self.bathroom = extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text)
-			self.size = extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text)
-			# what about self.doz?
-			self.doz = -1
+			if extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text) == -1:
+				print("bathroom missing")
+				missing_value = True
+				self.bathroom = 0
+			else:
+				#print(unit_info.find("td", {"class": "building-units-baths"}).text)
+				self.bathroom = extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text)
+			
+			if extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text) == -1:
+				print("size missing")
+				missing_value = True
+				self.size = 0
+			else:
+				self.size = extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text)
+
 			# house_type is also not done
 	
 			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
 				self.house_type = ""
 				print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
+
 				self.missing_value = True
+
 			else:
 				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
@@ -61,21 +74,21 @@ class House:
 			#self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
 			# This is wrong. zestimate shouldn't be used. should follow link instead.
+			#print(property_info.find('dt', {'class': 'price-large'}))
 			if property_info.find('dt', {'class': 'price-large'}) == None:
 				print("price missing")
 				self.missing_value = True
-				# Need to check this once
-				# I don't think zestimate equals price. They are totally different.
-				#if property_info.find('dt', {'class': 'zestimate'}) == None:
-					#print(property_info.find('dt', {'class': 'zestimate'}))
-				#self.price = extract_numbers(property_info.find('dt', {'class': 'zestimate'}).text) * 1000
-			#elif property_info.find('dt', {'class': 'price-large'}).text[0] == "$":
-				#self.price = eval(property_info.find('dt', {'class': 'price-large'}).text.replace(",", "")[1:])
-				#self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
+			elif property_info.find('dt', {'class': 'price-large'}).text == "":
+				print("price missing, tag is present")
+				self.missing_value = True
 			else:
 				self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
 
 			if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
+				#print(property_info.find('span', {'class': 'beds-baths-sqft'}))
+				#print(property_info.find('span', {'class': 'beds-baths-sqft'}).text)
+				#for letter in property_info.find('span', {'class': 'beds-baths-sqft'}).text:
+				#	print("letter", letter)
 				beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
 
 				if beds_baths_sqft[0] == "Studio":
@@ -99,6 +112,7 @@ class House:
 						self.size = 0
 			
 			else:
+
 				self.bedroom = 0
 				self.bathroom = 0
 				self.size = 0
@@ -123,14 +137,13 @@ class House:
 				self.built_year = 0
 
 
-
 		if self.missing_value:
 			print("we will run follow_link")
 			self.follow_link(house_article)
-			print("after follow_link, house_type:", self.house_type)
+			print("after follow_link, house_type:", self.house_type, "price:", self.price)
 
 		# Need to check back on this
-		print(self.house_type)
+		#print(self.house_type)
 		self.info_dict = {"price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
 		
 		self.weighted_score = 0
@@ -148,7 +161,7 @@ class House:
 			#return
 
 		self.price = extract_numbers(new_soup.find("div", {"class": "main-row"}).text)
-		print("within follow_link", self.house_type, self.price)
+		#print("within follow_link", self.house_type, self.price)
 
 # I don't think I'm using this dictionary
 NEW_LINK_DICT = {
@@ -263,12 +276,17 @@ def extract_numbers(num_str):
     for letter in num_str:
         if re.search("[0-9]", letter) != None:
             num += letter
+        elif letter == ".":
+        	#print("we found .")
+        	break
+
     if len(num) > 0 and re.search("[0-9][Kk]", num_str) != None:
         return eval(num) * 1000
     elif len(num) > 0:
         return eval(num)
     else:
         # Should I return None or 0 or -1?
+        #print("something wrong is happening with num_str", num_str)
         return -1
 
 def create_url(zipcode, listing_type, criteria_list):
