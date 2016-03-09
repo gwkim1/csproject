@@ -222,8 +222,8 @@ def create_house_objects(soup):
 	'''
 	soup_list = [soup]
 	if soup.find("li", {"class": "zsg-pagination-next"}) != None:
-		soup_list += find_additional_links(soup)
-	#print("soup_list length", len(soup_list))
+		soup_list += find_additional_links(soup, [])
+	print("soup_list length", len(soup_list))
 	#print(len(soup_list))
 	house_articles_list = []
 	for eachsoup in soup_list:
@@ -238,14 +238,22 @@ def create_house_objects(soup):
 		house_articles_list += house_articles	
 		#print(len(house_articles_list))
 	#print(len(house_articles_list))
-
+	#print(house_articles_list)
 	house_list = []
 	#print(len(house_articles))
+	article_count = 0
 	for house_article in house_articles_list:
+		article_count += 1	
+		if house_article.find("div", {'class': 'property-info'}).find("span", {'itemprop': 'streetAddress'}) != None:
+			temp_address = house_article.find("div", {'class': 'property-info'}).find("span", {'itemprop': 'streetAddress'}).text
+		else:
+			temp_address = "No"
+		print("article_count:", article_count, temp_address)
 		if "grouped" in house_article["class"]:
 			house_list += get_multiple_units(house_article)
 		else:
 			house_list.append(House(house_article))
+
 	return house_list
 
 
@@ -261,10 +269,14 @@ def get_multiple_units(house_article):
 	link_soup = get_soup(link)
 	#print(link_soup.find("body")["id"])
 	#print(link_soup.find("table", {"id" : "units-list_available"}))
+	print("This link is visited:", link)
 	table_match_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("tr", {"class": "matches-filters"})
 	#print(len(table_match_list))
 	house_list = []
+	match_count = 0
 	for match in table_match_list:
+		match_count += 1
+		print("match_count:", match_count)
 		house_list.append(House(house_article, unit_info = match))
 
 	return house_list
@@ -317,7 +329,7 @@ def create_url(zipcode, listing_type, criteria_list):
 		elif condition[0] == "size":
 			size_range = (condition[1], condition[2])
 		elif condition[0] == "house_type":
-			house_types = condition[1:-1]
+			house_types = condition[1:]
 	#print(price_range)
 
 	base_url = "http://www.zillow.com/homes/"
@@ -422,6 +434,7 @@ def find_additional_links(soup, soup_list = []):
 
 	This function would return the soup for each page.
 	'''
+	print("len(soup_list):", len(soup_list))
 	# Base case
 	if soup.find("li", {"class": "zsg-pagination-next"}) == None:
 		#print("finally", type(soup_list))
@@ -429,8 +442,10 @@ def find_additional_links(soup, soup_list = []):
 
 	# Recursive case
 	next_link = "http://www.zillow.com" + soup.find("li", {"class": "zsg-pagination-next"}).find("a")['href']
+	print("next_link created:", next_link)
 	new_soup = get_soup(next_link)
 	soup_list.append(new_soup)
+	print("after recursion, len(soup_list):", len(soup_list))
 	#print("will run the function again")
 	#print("len(soup_list):", len(soup_list))
 	return find_additional_links(new_soup, soup_list)
