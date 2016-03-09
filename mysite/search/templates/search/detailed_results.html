@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <!-- Sets the background image -->
     <style type = "text/css">
 body {
+
     background-image: url("http://klineandcorealestate.com/sites/default/files/Real-Estate-1.jpg");
     background-repeat: repeat-x;
 }
 </style>
 </head>
     
-
-
-
 <title> main page </title>
 <p> Detailed Results for {{address}}</p>
 
 <form method="post">
     {% csrf_token %}
     <label for="distance">Distance: </label>
-    <input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}"></br>
+    <input id="distance" type="number" step="1" name="distance" value="{{ current_distance }}">
+    <select name="distance_type">
+      <option id="distance_type" name="distance_type" value="miles"> Miles </option>
+      <option id="distance_type" name="distance_type" value="meters" selected> Meters </option>
+    </select>
+    </br>
     <label for="term">Search Yelp: </label>
     <input id="term" type="string" name="term" value="{{ current_term }}">
     <input type="hidden" name="address" value=" {{ address }}">
@@ -95,17 +99,11 @@ function initMap() {
   }
   map.fitBounds(bounds);
 
-  // Create a marker and set its position.
 }
     </script>
     <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr6T8_7bIcbN1f4ntweV-iSTWreb0PtBI&callback=initMap">
     </script>
   </body>
-
-
-
-
-
 
 </html>
