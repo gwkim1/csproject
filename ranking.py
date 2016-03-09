@@ -134,6 +134,7 @@ def create_array(house_list, criteria_list, return_list=False):
                     #score_array[i][j] = -1
                     need_to_delete.add(i)
                     print("house", i, "does not meet criterion", j)
+                    print(house_dict[i].info_dict["address"])
                     print(house_dict[i].info_dict[criteria_dict[j][0]])
             else:    
                 #print("let's check")
@@ -142,6 +143,7 @@ def create_array(house_list, criteria_list, return_list=False):
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
                     print("house", i, "does not meet criterion", j)
+                    print(house_dict[i].info_dict["address"])
                     print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
     
     #print("need_to_delete:", need_to_delete)

@@ -144,7 +144,7 @@ class House:
 
 		# Need to check back on this
 		#print(self.house_type)
-		self.info_dict = {"price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
+		self.info_dict = {"address": self.address, "price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
 		
 		self.weighted_score = 0
 
@@ -226,17 +226,21 @@ def create_house_objects(soup):
 	print("soup_list length", len(soup_list))
 	#print(len(soup_list))
 	house_articles_list = []
+	soup_count = 0
 	for eachsoup in soup_list:
+		soup_count += 1
+		
 		#print(type(eachsoup))
 		house_articles = eachsoup.find_all("article", {"class": "property-listing"})
 		#print(type(house_articles)()
 		similar_house_articles = eachsoup.find_all("article", {"class": "relaxed-result"})
 		#print(len(similar_house_articles))
 		for similar_house in similar_house_articles:
-			house_articles.remove(similar_house)	
+			house_articles.remove(similar_house)
+		print("soup_count:", soup_count, "num of articles:", len(house_articles))
 		#print("after subtracting", len(house_articles))
 		house_articles_list += house_articles	
-		#print(len(house_articles_list))
+		print("soup_count:", soup_count, "after adding:", len(house_articles_list))
 	#print(len(house_articles_list))
 	#print(house_articles_list)
 	house_list = []
@@ -244,8 +248,8 @@ def create_house_objects(soup):
 	article_count = 0
 	for house_article in house_articles_list:
 		article_count += 1	
-		if house_article.find("div", {'class': 'property-info'}).find("span", {'itemprop': 'streetAddress'}) != None:
-			temp_address = house_article.find("div", {'class': 'property-info'}).find("span", {'itemprop': 'streetAddress'}).text
+		if house_article.find("div", {'class': 'property-info'}).find("a") != None:
+			temp_address = house_article.find("div", {'class': 'property-info'}).find("a")["title"]
 		else:
 			temp_address = "No"
 		print("article_count:", article_count, temp_address)
@@ -270,8 +274,10 @@ def get_multiple_units(house_article):
 	#print(link_soup.find("body")["id"])
 	#print(link_soup.find("table", {"id" : "units-list_available"}))
 	print("This link is visited:", link)
-	table_match_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("tr", {"class": "matches-filters"})
-	#print(len(table_match_list))
+	table_match_list = []
+	if link_soup.find("table", {"id" : "units-list_available"}) != None:
+		table_match_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("tr", {"class": "matches-filters"})
+	print("Number of matches-filters", len(table_match_list))
 	house_list = []
 	match_count = 0
 	for match in table_match_list:
