@@ -1,4 +1,14 @@
 <html>
+<head>
+    <!-- Sets the background image -->
+    <style type = "text/css">
+body {
+
+    background-image: url("https://wallpaperscraft.com/image/surface_network_light_background_texture_50497_1920x1200.jpg");
+    background-repeat: repeat-y;
+}
+</style>
+</head>
 <title> main page </title>
 <p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
 
@@ -13,37 +23,41 @@
 	<label for="location">Zipcode: </label>
 	<input id="location" type="number" name="location" value="{{ current_loc }}">
   <br>
-  <label for="house_type1"> House Type 1st preference: </label>
+  <label for="house_type1"> 1st preference: </label>
   <select name="house_type1">
     <option id="house_type1" name="house_type1" value="houses" selected>House</option>
     <option id="house_type1" name="house_type1" value="apartments">Apartment</option>
-    <option id="house_type1" name="house_type1" value="Condo/Co-op">Condo/Co-op</option>
+    <option id="house_type1" name="house_type1" value="condos/co-ops">Condo/Co-op</option>
   </select>
   <br>
-  <label for="house_type2"> House Type 2nd preference: </label>
+  <label for="house_type2"> 2nd preference: </label>
   <select name="house_type2">
     <option id="house_type2" name="house_type2" value="houses">House</option>
     <option id="house_type2" name="house_type2" value="apartments" selected>Apartment</option>
-    <option id="house_type2" name="house_type2" value="Condo/Co-op">Condo/Co-op</option>
+    <option id="house_type2" name="house_type2" value="condos/co-ops">Condo/Co-op</option>
     <option id="house_type2" name="house_type2" value=""></option>
   </select>
   <br>
-  <label for="house_type3"> House Type 3rd preference: </label>
+  <label for="house_type3"> 3rd preference: </label>
   <select name="house_type3">
     <option id="house_type3" name="house_type3" value="houses">House</option>
     <option id="house_type3" name="house_type3" value="apartments">Apartment</option>
-    <option id="house_type3" name="house_type3" value="Condo/Co-op" selected>Condo/Co-op</option>
+    <option id="house_type3" name="house_type3" value="condos/co-ops" selected>Condo/Co-op</option>
     <option id="house_type2" name="house_type2" value=""></option>
   </select>
   <br>
   <label for="listing_type3">Are you buying or renting? </label>
   <select name="listing_type">
     <option id="listing_type" name="listing_type" value="sale"> Buying </option>
-    <option id="listing_type" name="listing_type" value="rent"> Renting </option>
+    <option id="listing_type" name="listing_type" value="rent" selected> Renting </option>
   </select>
   <br><br>
-	<label for="distance">As a user, how do you define nearby? (in meters)</label>
+	<label for="distance">As a user, how do you define nearby?</label>
 	<input id="distance" type="number" name="distance" value="{{ current_distance }}">
+  <select name="distance_type">
+    <option id="distance_type" name="distance_type" value="miles"> Miles </option>
+    <option id="distance_type" name="distance_type" value="meters" selected> Meters </option>
+  </select>
   <br><br>
   Price (monthly):
   <label for="price_lower_limit"> Minimum</label>

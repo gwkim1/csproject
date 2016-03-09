@@ -44,7 +44,11 @@ def results(request):
 	try:
 		c["current_distance"]=request.POST.get("distance")
 		distance=float(c["current_distance"])
+		units = request.POST.get("distance_type")
+		if units == "miles":
+			distance *= 1609.34
 		assert distance>0
+
 	except:
 		errors.append("distance should be a numeric value greater than 0")
 	try:
@@ -90,12 +94,15 @@ def results(request):
 			assert house_type1 != house_type2 and house_type1 != house_type3
 		except:
 			errors.append("House types repeat")
-		if house_type2 == None and house_type3 != None:
+		if house_type2 == "" and house_type3 != "":
 			errors.append("Invalid ordering")
-		house_types = []
+		house_types = ["house_type"]
 		house_types.append(house_type1)
-		house_types.append(house_type2)
-		house_types.append(house_type3)
+		if house_type2 != "":
+			house_types.append(house_type2)
+			if house_type3 != "":
+				house_types.append(house_type3)
+		house_types.append(500)
 	except:
 		errors.append("Need first field for house type preference")
 
@@ -126,29 +133,37 @@ def results(request):
 			errors.append("min bedroom should be an integer value greater than or equal to 0, and less than or equal to max bedroom")
 	except:
 		errors.append("max bedroom should be an integer value greater than or equal to 0")
-
+	questions=[]
+	count=1
+	with open(current_path+"/search/templates/search/survey.txt") as f:
+		for line in f:
+			questions.append([line, count])
+			count+=1
+	c["survey"]=questions
 	if len(errors)>0:
-		questions=[]
-		count=1
-		with open(current_path+"/search/templates/search/survey.txt") as f:
-			for line in f:
-				questions.append([line, count])
-				count+=1
-		c["survey"]=questions
 		c["errors"]=errors
 		return render(request, 'search/home.html', c)
 
 
 	#run the data through
 	criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit, None, 300], ["bedroom", current_min_bedroom, current_max_bedroom, None, 400],
-                      ["bathroom", current_min_bathroom, current_max_bathroom, None, 100],["size", 0, 10000, None, 100], ["house_type", "houses", "apartments", "condos/co-ops", 500]]
+                      ["bathroom", current_min_bathroom, current_max_bathroom, None, 100],["size", 0, 10000, None, 100], house_types]
 	
 	print("Querying zillow...")
 	#url=zillow.create_url(loc, listing_type, criteria_list)
 	#soup=zillow.get_soup(url)
 	#result=zillow.create_house_objects(soup)
+	print(loc, listing_type, criteria_list)
 	result = ranking.get_house_list(loc, listing_type, criteria_list)
 	print("Done. Found {} matching properties".format(len(result)))
+	if len(result) > 100:
+		errors.append("Too many results, please narrow down your search.")
+		c["errors"]=errors
+		return render(request, 'search/home.html', c)
+	if len(result) ==0:
+		errors.append("No results found.")
+		c["errors"]=errors
+		return render(request, 'search/home.html', c)
 	zillow_pref, Yelp_pref, database_pref=weights[:4],weights[4:11], weights[11:]
 	#print(zillow_prep, Yelp_pref, database_pref)
 	#they have been ordered
@@ -178,7 +193,7 @@ def results(request):
 	# PEDROS AND RYANS SCORES: total_scores
 	# PEDROS AND RYANS WEIGHTS: database_pref, Yelp_pref
 
-	
+		
 	print(zillow_pref, database_pref, Yelp_pref, house_types, total_scores)
 
 	'''
@@ -208,12 +223,19 @@ def detailed_results(request):
 	c['current_term'] = request.POST.get('term', "food")
 	c['current_cat'] = request.POST.get('cat')
 	#print(c['current_cat'])
+	
 	c['categories'] = ["all","restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
+	distance = float(c["current_distance"])
+	units = request.POST.get("distance_type")
+	if units == "miles":
+		distance *= 1609.34
+	if distance > 40000:
+		distance = 40000
 	if c['current_term'] != "":
 		if c['current_cat'] == "all":
-			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), c['current_distance'], c['current_term'])
+			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'])
 		else:
-			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), c['current_distance'], c['current_term'], c['current_cat'])
+			c['results'] = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'])
 		
 	print(c['results'])
 	address = request.POST.get("address")
