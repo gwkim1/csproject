@@ -24,15 +24,24 @@ class House:
 		self.long = float(house_article["longitude"])/1000000
 		self.score = None
 
+
+		#house_article.find("div", {'class': 'property-info'}).find("a")["title"]
 		# There is a property info without an address!! what is this?
-		if property_info.find("span", {'itemprop': 'streetAddress'}) == None:
-			if property_info.find("dt", {'class': 'building-name-address'}) != None:
-				self.address = property_info.find("dt", {'class': 'building-name-address'}).text
-			else:
-				self.address = None
-			#print("this is what went wrong", property_info)
+		
+		if property_info.find("a") != None:
+			self.address = property_info.find("a")["title"]
 		else:
-			self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
+			# Not sure about this
+			self.address = "No address found"
+
+		#if property_info.find("span", {'itemprop': 'streetAddress'}) == None:
+		#	if property_info.find("dt", {'class': 'building-name-address'}) != None:
+		#		self.address = property_info.find("dt", {'class': 'building-name-address'}).text
+		#	else:
+				#self.address = None
+			#print("this is what went wrong", property_info)
+		#else:
+		#	self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
 
 		if unit_info != None:
 			self.price = extract_numbers(unit_info.find("td", {"class": "building-units-price"}).text)
@@ -84,6 +93,8 @@ class House:
 			else:
 				self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
 
+			self.set_beds_baths_sqft(property_info)
+			'''
 			if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
 				#print(property_info.find('span', {'class': 'beds-baths-sqft'}))
 				#print(property_info.find('span', {'class': 'beds-baths-sqft'}).text)
@@ -94,19 +105,26 @@ class House:
 				if beds_baths_sqft[0] == "Studio":
 					self.bedroom = 0
 					if len(beds_baths_sqft) >= 3:
-						self.bathroom = eval(beds_baths_sqft[2])
+						self.bathroom = extract_numbers(beds_baths_sqft[2])
 					else:
 						self.bathroom = 0
 					if len(beds_baths_sqft) >= 6:
-						self.size = eval(beds_baths_sqft[5].replace(",", ""))
+						#self.size = eval(beds_baths_sqft[5].replace(",", ""))
+						self.size = extract_numbers(beds_baths_sqft[5])
 					else:
 						# This is problematic. Same.
 						self.size = 0				
 				else:
+					print("beds_baths_sqft:", beds_baths_sqft)
 					self.bedroom = eval(beds_baths_sqft[0])
-					self.bathroom = eval(beds_baths_sqft[3])
-					if len(beds_baths_sqft) >= 6:
-						self.size = eval(beds_baths_sqft[6].replace(",", ""))
+					if len(beds_baths_sqft) >= 4:
+						self.bathroom = extract_numbers(beds_baths_sqft[3])
+					else:
+						self.bathroom = 0
+					#self.bathroom = eval(beds_baths_sqft[3])
+					if len(beds_baths_sqft) >= 7:
+						#self.size = eval(beds_baths_sqft[6].replace(",", ""))
+						self.size = extract_numbers(beds_baths_sqft[6])
 					else:
 						# This is problematic. Same.
 						self.size = 0
@@ -122,7 +140,7 @@ class House:
 			else:
 				self.doz = extract_numbers(property_info.find('dt', {'class': 'doz'}).text)
 
-
+			'''
 			#self.lat = eval(property_info.find('meta', {'itemprop': 'latitude'})["content"])
 			#self.long = eval(property_info.find('meta', {'itemprop': 'longitude'})["content"])				
 			#elif re.search(property_info.find('dt', {'class': 'doz'}).text[0], "[0-9]") == None:
@@ -162,6 +180,25 @@ class House:
 
 		self.price = extract_numbers(new_soup.find("div", {"class": "main-row"}).text)
 		#print("within follow_link", self.house_type, self.price)
+
+	def set_beds_baths_sqft(self, property_info):
+		self.bedroom = 0
+		self.bathroom = 0
+		self.size = 0
+	
+		if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
+			beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
+			for i in range(len(beds_baths_sqft)):
+				if beds_baths_sqft[i] == "bds":
+					self.bedroom = extract_numbers(beds_baths_sqft[i-1])
+				elif beds_baths_sqft[i] == "ba":
+					self.bathroom = extract_numbers(beds_baths_sqft[i-1])
+				elif beds_baths_sqft[i] == "sqft":
+					self.size = extract_numbers(beds_baths_sqft[i-1])
+
+			if beds_baths_sqft[0] == "Studio":
+				self.bedroom = 0
+
 
 # I don't think I'm using this dictionary
 NEW_LINK_DICT = {
@@ -291,6 +328,7 @@ def get_multiple_units(house_article):
 def extract_numbers(num_str):
 	# Also need to account for "M" as million
     num = ""
+    print("num_str:", num_str)
     for letter in num_str:
         if re.search("[0-9]", letter) != None:
             num += letter
