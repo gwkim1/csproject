@@ -3,6 +3,7 @@ import bs4
 import urllib.parse
 import urllib.request
 import re
+import time
 
 
 class House:
@@ -256,11 +257,30 @@ def get_house_type(type_str):
 
     return house_type
 		
+'''
+def rerun_search(soup, url):
+	print("the function is rerun")
+	house_articles = soup.find_all("article", {"class": "property-listing"})
+	
+	if len(house_articles) == 0:
+		print("search request failed: will rerun the function")
+		new_soup = get_soup(url)
+		return rerun_search(soup)	
 
-def create_house_objects(soup):
+	return house_articles
+'''
+
+# map-result-count-message. div. whether h2 is present within this or not.
+
+def create_house_objects(soup, url):
 	'''
 	many codes repeated with get_house_info, but we'll deal with this later
 	'''
+
+	while soup.find("article", {"class": "property-listing"}) == None:
+		print("############soup is a blank page, will make another soup")
+		soup = get_soup(url)
+
 	soup_list = [soup]
 	if soup.find("li", {"class": "zsg-pagination-next"}) != None:
 		soup_list += find_additional_links(soup, [])
@@ -269,12 +289,19 @@ def create_house_objects(soup):
 	house_articles_list = []
 	soup_count = 0
 	for eachsoup in soup_list:
+
 		soup_count += 1
 		
 		#print(type(eachsoup))
 		house_articles = eachsoup.find_all("article", {"class": "property-listing"})
-		#print(type(house_articles)()
+
+		# Need to distinguish cases in which there actually is no search result and there is		
+		if len(house_articles) == 0:
+			print("search request failed")
+			house_articles = rerun_search(eachsoup, url)
+
 		similar_house_articles = eachsoup.find_all("article", {"class": "relaxed-result"})
+		#print(type(house_articles)()
 		#print(len(similar_house_articles))
 		for similar_house in similar_house_articles:
 			house_articles.remove(similar_house)
@@ -469,12 +496,13 @@ def create_url_alt(zipcode, listing_type = "", price_range = (0, 0), min_bedroom
 '''
 
 def get_soup(url):
+	print("get_soup is successfully run")
 	response = urllib.request.urlopen(url)
 	str_response = response.readall().decode('utf-8')
 	return bs4.BeautifulSoup(str_response, "lxml")
 
 
-def find_additional_links(soup, soup_list = []):
+def find_additional_links(soup, soup_list):
 	'''
 	*IMPORTANT: need to limit the search result to less than 1000. Zillow only supports 1000
 	
@@ -492,6 +520,11 @@ def find_additional_links(soup, soup_list = []):
 	next_link = "http://www.zillow.com" + soup.find("li", {"class": "zsg-pagination-next"}).find("a")['href']
 	print("next_link created:", next_link)
 	new_soup = get_soup(next_link)
+
+	while new_soup.find("article", {"class": "property-listing"}) == None:
+		print("############new_soup is a blank page, will make another soup")
+		new_soup = get_soup(next_link)
+
 	soup_list.append(new_soup)
 	print("after recursion, len(soup_list):", len(soup_list))
 	#print("will run the function again")

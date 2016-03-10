@@ -36,7 +36,7 @@ second ~ last:
 def get_house_list(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
-    house_list = zillow.create_house_objects(soup)
+    house_list = zillow.create_house_objects(soup, url)
     print("num of houses before running create_array:", len(house_list))
     new_house_list = create_array(house_list, criteria_list, return_list=True)
     return new_house_list
