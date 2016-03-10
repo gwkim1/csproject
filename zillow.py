@@ -188,12 +188,16 @@ class House:
 	
 		if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
 			beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
+			#print(beds_baths_sqft)
 			for i in range(len(beds_baths_sqft)):
-				if beds_baths_sqft[i] == "bds":
+				if beds_baths_sqft[i] == "bds" or beds_baths_sqft[i] == "bd":
+					#print("bed detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
 					self.bedroom = extract_numbers(beds_baths_sqft[i-1])
 				elif beds_baths_sqft[i] == "ba":
+					#print("bath detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
 					self.bathroom = extract_numbers(beds_baths_sqft[i-1])
 				elif beds_baths_sqft[i] == "sqft":
+					#print("size detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
 					self.size = extract_numbers(beds_baths_sqft[i-1])
 
 			if beds_baths_sqft[0] == "Studio":
@@ -328,7 +332,7 @@ def get_multiple_units(house_article):
 def extract_numbers(num_str):
 	# Also need to account for "M" as million
     num = ""
-    print("num_str:", num_str)
+    #print("num_str:", num_str)
     for letter in num_str:
         if re.search("[0-9]", letter) != None:
             num += letter
