@@ -139,10 +139,10 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
   '''
   lat = location[0]
   long = location[1]
-  print(offset)
+  #print(offset)
   params = get_search_parameters(lat, long, term, radius, limit, category_filter, offset = offset)
   api_call = get_results(params)
-  print(api_call)
+  #print(api_call)
   if "businesses" not in api_call.keys():
     return 0, []
   time.sleep(1.0)
