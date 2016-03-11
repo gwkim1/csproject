@@ -41,14 +41,15 @@ def get_house_list(zipcode, listing_type, criteria_list):
     new_house_list = create_array(house_list, criteria_list, return_list=True)
     return new_house_list
 
-
+'''
 def get_house_list_alt(zipcode, listing_type, criteria_list):
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
-    house_list = zillow.create_house_objects(soup)
+    house_list = zillow.create_house_objects(soup, url)
     #print(house_list)
     #new_house_list = create_array(house_list, criteria_list, return_list=True)
     return house_list
+'''
 
 '''
 FOR RYAN AND PEDRO: when your website gives the scores and weights back run get_final_scores to get
@@ -56,15 +57,23 @@ a list of tuples with each tuple being like (rank, house address, score, House o
 
 Need to change the same of the arguments so that they are intuitive
 '''
-def get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref):
-    total_scores = np.array(total_scores)
-    array_list = [score_array, total_scores]
+def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, database_pref, Yelp_pref):
+    ypchicago_scores = np.array(ypchicago_scores)
+    zillow_scores = get_zillow_scores(house_list, criteria_list)
+    array_list = [zillow_scores, ypchicago_scores]
     weight_list = zillow_pref + database_pref + Yelp_pref
     new_array = concatenate_arrays(array_list)
-    weighted_array = get_weighted_score(new_array, criteria_list, weight_list)
+    weighted_array = get_weighted_score(new_array, weight_list)
     show_ranking(weighted_array, house_list)
 
 
+def get_zillow_scores(house_list, criteria_list):
+    '''
+    do I need to sort criteria_list? prbly not
+    '''
+    base_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
+    #print(base_array)
+    return calculate_preference(base_array, house_list, criteria_list)
 
 
 def suggest_house(house_list, criteria_list, weight_list):
@@ -80,8 +89,20 @@ def suggest_house(house_list, criteria_list, weight_list):
     '''
     arr = create_array(house_list, criteria_list)
     score_array = calculate_preference(arr, house_list, criteria_list)
-    weighted_array = get_weighted_score(score_array, criteria_list, weight_list)
+    weighted_array = get_weighted_score(score_array, weight_list)
     return show_ranking(weighted_array, house_list)
+
+
+
+###### Order of zillow_pref: price house_type bathrooms bedrooms
+def sort_criteria_list(criteria_list):
+    order = ["price", "house_type", "bathroom", "bedroom"]
+    sorted_list = []
+    for criterion in order:
+        for block in criteria_list:
+            if block[0] == criterion:
+                sorted_list.append(block)
+    return sorted_list
 
 
 # This also deletes houses that does not meet criteria from the original house_list
@@ -106,63 +127,36 @@ def create_array(house_list, criteria_list, return_list=False):
         house_dict[i] = house_list[i]
     for j in range(len(criteria_list)):
         criteria_dict[j] = criteria_list[j]
-    
-    #print(house_dict)
-    #print(criteria_dict)
 
     score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
 
     need_to_delete = set()
-    
-    #print(house_list)
+
 
     for i in range(len(house_list)):
         for j in range(len(criteria_list)):
-            #print(criteria_dict[j])
-            #print(criteria_dict[j][1])
-            #print(type(criteria_dict[j][1]))
             if type(criteria_dict[j][1]) == str:
-                #print("let's check")
-                #print(house_dict[i].info_dict[criteria_dict[j][0]])
-                #print(criteria_dict[j])
-
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]):
-                    #print(house_dict[i].info_dict[criteria_dict[j][0]], "not in", criteria_dict[j])
-                    #print(criteria_dict[j][0])
-                    #print(house_dict[i].info_dict)
-                    # array only accepts numbers!!! need to change this default value
-                    #score_array[i][j] = -1
                     need_to_delete.add(i)
                     print("house", i, "does not meet criterion", j)
                     print(house_dict[i].info_dict["address"])
                     print(house_dict[i].info_dict[criteria_dict[j][0]])
-            else:    
-                #print("let's check")
-                #print(house_dict[i].info_dict[criteria_dict[j][0]])
-                #print(criteria_dict[j])                        
+            else:                       
                 if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
                     need_to_delete.add(i)  
                     print("house", i, "does not meet criterion", j)
                     print(house_dict[i].info_dict["address"])
                     print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
-    
-    #print("need_to_delete:", need_to_delete)
-    #print(len(need_to_delete))
+
     if len(need_to_delete) != 0:
         need_to_delete = list(need_to_delete)
         need_to_delete.sort()
         need_to_delete.reverse()
-    #print("need_to_delete:", need_to_delete)
 
-
-    #temp_deleted_list = []
     for i in need_to_delete:
         score_array = np.delete(score_array, i, 0)
-        #temp_deleted_list.append(house_list[i])
         del house_list[i]        
 
-    #return temp_deleted_list
-    #print(house_list)
     if return_list == True:
         return house_list
 
@@ -201,11 +195,11 @@ def calculate_preference(array, house_list, criteria_list):
                 #print(criteria_list[col][1:-1].index("houses")) #- ####index of the value e.g. house_type  / (len(criteria_list[col]) - 1)
 
 
-            print("pref:", pref_value, "indif:", indifference, "pref:", preference)
+            #print("pref:", pref_value, "indif:", indifference, "pref:", preference)
             if pref_value < indifference:
                 array[row][col] = 0
             elif pref_value > preference:
-                array[row][col] = 1
+                array[row][col] = 100
             else:
                 array[row][col] = (pref_value - indifference) * 100 / (preference - indifference)
     return array
@@ -250,6 +244,12 @@ def show_ranking(weighted_array, house_list):
     returns a list of tuples sorted by score in descending order with
     each tuple: (rank, house object, score)
     '''
+    for i in range(len(house_list)):
+        house_list[i].score = weighted_array[i][0]
+
+    #for house in house_list:
+        #print(house.score, house.info_dict)
+
     score_list = []
     index = 0
     for score in weighted_array:
@@ -257,16 +257,24 @@ def show_ranking(weighted_array, house_list):
         index += 1
     score_list.sort()
     score_list.reverse()
+    #print(score_list)
 
     rank_list = []
     for score_tuple in score_list:
         # This if statement can probably be reduced to something simpler
-        if len(rank_list) == 0:
-            rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-        elif score_tuple[0] == rank_list[-1][2]:
-            print(rank_list[-1][0])
-            rank_list.append((rank_list[-1][0], house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-        else:
-            rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-
+        rank_list.append(house_list[score_tuple[1]])        
+    return 111
+    print("rank_list:", rank_list)
     return rank_list
+
+        #if len(rank_list) == 0:
+        #    rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+        #elif score_tuple[0] == rank_list[-1][2]:
+        #    print(rank_list[-1][0])
+        #    rank_list.append((rank_list[-1][0], house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+        #else:
+        #    rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
+    #for house in rank_list:
+    #    print(house.score)
+
+    
