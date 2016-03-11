@@ -26,28 +26,29 @@ class House:
 		self.lat = float(house_article["latitude"])/1000000
 		self.long = float(house_article["longitude"])/1000000
 		self.score = None
-		self.house_id=House.house_id
-		House.house_id+=1
+		self.house_id = House.house_id
+		House.house_id += 1
 
 
-		#house_article.find("div", {'class': 'property-info'}).find("a")["title"]
-		# There is a property info without an address!! what is this?
 		
 		if property_info.find("a") != None:
 			self.address = property_info.find("a")["title"]
 		else:
+			print("@@@@@@@@@@@@@@@@@@@@@@@@@@@No address found")
 			# Not sure about this
 			self.address = "No address found"
 
-		#if property_info.find("span", {'itemprop': 'streetAddress'}) == None:
-		#	if property_info.find("dt", {'class': 'building-name-address'}) != None:
-		#		self.address = property_info.find("dt", {'class': 'building-name-address'}).text
-		#	else:
-				#self.address = None
-			#print("this is what went wrong", property_info)
-		#else:
-		#	self.address = property_info.find("span", {'itemprop': 'streetAddress'}).text
 
+		if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
+			self.house_type = ""
+			print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
+			self.missing_value = True
+		else:
+			self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
+
+
+
+		'''
 		if unit_info != None:
 			self.price = extract_numbers(unit_info.find("td", {"class": "building-units-price"}).text)
 			self.bedroom = eval(unit_info["data-bedroom"])
@@ -56,7 +57,6 @@ class House:
 				missing_value = True
 				self.bathroom = 0
 			else:
-				#print(unit_info.find("td", {"class": "building-units-baths"}).text)
 				self.bathroom = extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text)
 			
 			if extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text) == -1:
@@ -65,8 +65,6 @@ class House:
 				self.size = 0
 			else:
 				self.size = extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text)
-
-			# house_type is also not done
 	
 			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
 				self.house_type = ""
@@ -77,18 +75,15 @@ class House:
 			else:
 				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
-		
+		'''
+		if unit_info != None:
+			print("this is multiple units")
+			#print(unit_info.find("td", {"class":"grouped-result-price"}))
+			self.price = extract_numbers(unit_info.find("td", {"class":"grouped-result-price"}).text)
+			self.bedroom = extract_numbers(unit_info.find("td", {"class":"grouped-result-beds"}).text)
+			self.bathroom = extract_numbers(unit_info.find("td", {"class":"grouped-result-baths"}).text)
+			self.size = extract_numbers(unit_info.find("td", {"class":"grouped-result-sqft"}).text)
 		else:
-			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
-				self.house_type = ""
-				print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
-				self.missing_value = True
-			else:
-				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
-			#self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
-
-			# This is wrong. zestimate shouldn't be used. should follow link instead.
-			#print(property_info.find('dt', {'class': 'price-large'}))
 			if property_info.find('dt', {'class': 'price-large'}) == None:
 				print("price missing")
 				self.missing_value = True
@@ -99,59 +94,6 @@ class House:
 				self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
 
 			self.set_beds_baths_sqft(property_info)
-			'''
-			if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
-				#print(property_info.find('span', {'class': 'beds-baths-sqft'}))
-				#print(property_info.find('span', {'class': 'beds-baths-sqft'}).text)
-				#for letter in property_info.find('span', {'class': 'beds-baths-sqft'}).text:
-				#	print("letter", letter)
-				beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
-
-				if beds_baths_sqft[0] == "Studio":
-					self.bedroom = 0
-					if len(beds_baths_sqft) >= 3:
-						self.bathroom = extract_numbers(beds_baths_sqft[2])
-					else:
-						self.bathroom = 0
-					if len(beds_baths_sqft) >= 6:
-						#self.size = eval(beds_baths_sqft[5].replace(",", ""))
-						self.size = extract_numbers(beds_baths_sqft[5])
-					else:
-						# This is problematic. Same.
-						self.size = 0				
-				else:
-					print("beds_baths_sqft:", beds_baths_sqft)
-					self.bedroom = eval(beds_baths_sqft[0])
-					if len(beds_baths_sqft) >= 4:
-						self.bathroom = extract_numbers(beds_baths_sqft[3])
-					else:
-						self.bathroom = 0
-					#self.bathroom = eval(beds_baths_sqft[3])
-					if len(beds_baths_sqft) >= 7:
-						#self.size = eval(beds_baths_sqft[6].replace(",", ""))
-						self.size = extract_numbers(beds_baths_sqft[6])
-					else:
-						# This is problematic. Same.
-						self.size = 0
-			
-			else:
-
-				self.bedroom = 0
-				self.bathroom = 0
-				self.size = 0
-			
-			if property_info.find('dt', {'class': 'doz'}) == None:
-				self.doz = 0
-			else:
-				self.doz = extract_numbers(property_info.find('dt', {'class': 'doz'}).text)
-
-			'''
-			#self.lat = eval(property_info.find('meta', {'itemprop': 'latitude'})["content"])
-			#self.long = eval(property_info.find('meta', {'itemprop': 'longitude'})["content"])				
-			#elif re.search(property_info.find('dt', {'class': 'doz'}).text[0], "[0-9]") == None:
-			#	self.doz = property_info.find('dt', {'class': 'doz'}).text[10]
-			#else:
-			#	self.doz = eval(property_info.find('dt', {'class': 'doz'}).text.split(" ")[0])
 			
 			if property_info.find('span', {'class': 'built-year'}) != None:
 				self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
@@ -326,12 +268,14 @@ def create_house_objects(soup, url):
 			temp_address = "No"
 		print("article_count:", article_count, temp_address)
 		if "grouped" in house_article["class"]:
-			house_list += get_multiple_units(house_article)
+			#house_list += get_multiple_units(house_article)
+			unit_list = house_article.find("div", {"class": "unit-list"}).find_all("tr")
+			for unit_tr in unit_list:
+				house_list.append(House(house_article, unit_tr))
 		else:
 			house_list.append(House(house_article))
 
 	return house_list
-
 
 
 def get_multiple_units(house_article):
@@ -359,6 +303,13 @@ def get_multiple_units(house_article):
 
 	return house_list
 
+# order: price, house_type, bathroom, bedroom
+'''
+def check_each_unit(match, criteria_list):
+	price = extract_numbers(match.find("td", {"class": "building_units_price"}))
+	bedroom = 
+	if price >= criteria_list[0][0] and price <= criteria_list[0][1] and 
+'''
 
 def extract_numbers(num_str):
 	# Also need to account for "M" as million
