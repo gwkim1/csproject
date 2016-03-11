@@ -7,6 +7,8 @@ import time
 
 
 class House:
+
+	house_id=0
 	# Need to work more on this
 	def __init__(self, house_article, unit_info = None):
 
@@ -24,6 +26,8 @@ class House:
 		self.lat = float(house_article["latitude"])/1000000
 		self.long = float(house_article["longitude"])/1000000
 		self.score = None
+		self.house_id=House.house_id
+		House.house_id+=1
 
 
 		#house_article.find("div", {'class': 'property-info'}).find("a")["title"]

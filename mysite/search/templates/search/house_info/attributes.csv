@@ -1,0 +1,25 @@
+id,address,price,bedroom,bathroom,latitude,longitude,score
+0,6027 S Indiana Ave UNIT 202, Chicago, IL Real Estate,778,2,1,41.78505,-87.62055,None
+1,5655 S Michigan Ave, Chicago, IL Real Estate,675,1,1,41.79127,-87.62189,None
+3,6415 S Champlain Ave, Chicago, IL Real Estate,675,1,1,41.77812,-87.60947,None
+6,111 E 68th St # 1ST, Chicago, IL Real Estate,650,1,1,41.771,-87.6215,None
+7,6803 S Michigan Ave # 2ND, Chicago, IL Real Estate,650,1,1,41.77085,-87.62178,None
+8,125 E 68th St # 2ND, Chicago, IL Real Estate,800,2,1,41.771,-87.6214,None
+9,S Champlain Ave, Chicago, IL Real Estate,800,1,1,41.782148,-87.609604,None
+10,130 E 70th St # 1, Chicago, IL Real Estate,695,1,1,41.7674,-87.6212,None
+11,30 E 69th St # 2, Chicago, IL Real Estate,800,2,1,41.7693,-87.6241,None
+12,6205 S Michigan Ave APT 3E, Chicago, IL Real Estate,675,1,1,41.78172,-87.62167,None
+13,6205 S Michigan Ave APT 3E, Chicago, IL Real Estate,675,1,1,41.78172,-87.62167,None
+14,6650 S Drexel Ave, Chicago, IL Real Estate,750,2,1,41.77372,-87.60341,None
+15,6810 S Michigan Ave # 2ND, Chicago, IL Real Estate,750,1,1,41.7706,-87.6223,None
+16,553 E 68th St # 2, Chicago, IL Real Estate,750,2,1,41.7712,-87.6111,None
+17,6754 S Michigan Ave, Chicago, IL Real Estate,800,2,1,41.7719,-87.6219,None
+18,6707 S Michigan Avenue # FL 2ND, Chicago, IL Real Estate,650,1,1,41.77262,-87.62182,None
+19,6122 S St Lawrnc Ave # 2FLR, Chicago, IL Real Estate,790,2,1,41.7832,-87.6113,None
+20,6417 S Champlain Ave, Chicago, IL Real Estate,625,1,1,41.77805,-87.60918,None
+21,6417 S Champlain Ave, Chicago, IL Real Estate,625,1,1,41.77805,-87.60918,None
+22,549 E 68th St # 1, Chicago, IL Real Estate,750,2,1,41.7712,-87.6112,None
+23,545 E 60th St APT 4A, Chicago, IL Real Estate,750,1,1,41.785476,-87.611579,None
+24,6928 S Michigan Ave # 1, Chicago, IL Real Estate,800,2,1,41.7683,-87.6222,None
+25,623 E Marquette Rd, Chicago, IL Real Estate,700,2,1,41.7748,-87.6098,None
+26,6246 S King Dr # STUDIO, Chicago, IL Real Estate,550,0,1,41.78055,-87.61569,None

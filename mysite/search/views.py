@@ -4,15 +4,19 @@ import os
 import re
 import numpy as np
 import math
+import csv
+import matplotlib.pylab as plt
 current_path=os.path.abspath(os.curdir)
 project_path=os.path.abspath("..")+"/"
 sys.path.insert(0, project_path)
 import zillow
 import sql_stuff
-import Yelp
+#import Yelp
 import ranking
+import shutil
 
-DATABASE_CATEGORIES=["Violent crimes", "Property crimes", "Other victimed non-violent crimes", "Quality of life crimes"]#, "bike_racks", "fire", "police"]
+DATABASE_CATEGORIES=["Violent", "Property", "QoL", "Other"]#, "bike_racks", "fire", "police"]
+HOUSE_PATH="search/templates/search/house_info"
 def about(request):
 	c={'names': 'Pedro, Eric, Ryan,'}
 	return render(request, 'search/about.html', c)
@@ -172,14 +176,14 @@ def results(request):
 	scores=[]
 
 	#for when I test at csil
-	#fake_yelp=[]
-	#for k in range(len(result)):
-	#	new_list=[]
-	#	for j in range(7):
-	#		new_list.append(0)
-	#	fake_yelp.append(new_list)
+	fake_yelp=[]
+	for k in range(len(result)):
+		new_list=[]
+		for j in range(7):
+			new_list.append(0)
+		fake_yelp.append(new_list)
 
-	Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
+	#Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
 	#print(len(Yelp_results[0]))
 	database_results=sql_stuff.search(date, list_of_house_coords, distance, database_name)
 	
@@ -188,8 +192,10 @@ def results(request):
 		house_scores=[l[j][1] for j in DATABASE_CATEGORIES]
 		database_scores.append(house_scores)
 	total_scores = []
-	for i in range(len(Yelp_results)):
-		total_scores.append(Yelp_results[i]+database_scores[i])
+	for i in range(len(fake_yelp)):
+		total_scores.append(fake_yelp[i]+database_scores[i])
+	#for i in range(len(Yelp_results)):
+	#	total_scores.append(Yelp_results[i]+database_scores[i])
 	print(len(total_scores[0]))
 	# FOR ERIC
 	# WEIGHTS FOR ZILLOW IN ORDER OF PRICE, HOUSETYPE, BATHROOM, BEDROOM: zillow_pref
@@ -221,6 +227,28 @@ def results(request):
 	result = sorted(result, key=lambda x: x.score)
 	result.reverse()
 	'''
+
+	shutil.rmtree(HOUSE_PATH, ignore_errors=True)
+	os.mkdir(HOUSE_PATH)
+	index=0
+	for i in result:
+		os.mkdir(HOUSE_PATH+"/{}".format(i.house_id))
+		for j in DATABASE_CATEGORIES:
+		    with open(HOUSE_PATH+"/{}/{}.csv".format(i.house_id, j), "w") as f:
+			    f.write("date,primary type,secondary type,latitude,longitude\n")
+			    for k in database_results[index][j][0]:
+			    	#need all of them to be strings for the join method
+			    	tuple_list=[str(l) for l in k]
+			    	row_string=",".join(tuple_list)
+			    	f.write(row_string+"\n")
+		index+=1
+
+	with open(HOUSE_PATH+"/attributes.csv", "w") as f:
+		f.write("id,address,price,bedroom,bathroom,latitude,longitude,score\n")
+		for j in result:
+			row_string="{},{},{},{},{},{},{},{}".format(j.house_id, j.address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score)
+			f.write(row_string+"\n")
+
 	variable_list = []
 	for house in result:
 		variable_list.append([house.score, house.address, house.lat, house.long, house.price, house.bathroom, house.bedroom])
@@ -231,11 +259,47 @@ def results(request):
 def detailed_results(request):
 	
 	c = {}
-	c["current_lat"] = request.POST.get("lat")
-	c["current_long"] = request.POST.get("long")
+	house_id=request.POST.get("house_id")
+	with open(HOUSE_PATH+"/attributes.csv", "r") as f:
+		header=f.readline()
+		reader=csv.reader(f)
+		for row in reader:
+			if row[0]==house_id:
+				c["current_lat"]=row[5]
+				c["current_long"]=row[6]
+				c["current_bedroom"]=row[3]
+				c["current_bathroom"]=row[4]
+				c["current_price"]=row[2]
+				c["current_address"]=row[1]
+				c["current_house_id"]=house_id
+				break
+	data=[]
+	all_crimes={}
+	line_styles=[".r--", ".b--", ".g--", ".y--"]
+	plt.subplot(111)
+	for j in DATABASE_CATEGORIES:
+		all_crimes[j]={}
+		with open(HOUSE_PATH+"/{}/{}.csv".format(house_id.strip(), j), "r") as f:
+			header=f.readline()
+			reader=csv.reader(f)
+			for row in reader:
+				date=row[0]
+				month_year=date[:7]
+				all_crimes[j][month_year]=all_crimes[j].get(month_year, 0)+1
+		t_labels=list(all_crimes[j].keys())
+		t_labels.sort()
+		t=range(len(t_labels))
+		plt.xticks(t, t_labels, rotation=30)
+		s=[all_crimes[j][k] for k in t_labels]
+		plt.plot(t, s, line_styles.pop(), label =j)
+	plt.xlabel("Date YYYY-MM")
+	plt.ylabel("Number of crimes")
+	plt.title("Historical crime in this neighborhood")
+	plt.grid(True)
+	plt.legend()#bbox_to_anchor=(1,1), loc=2, borderaxespad=0.)
+	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
+	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
 	c['current_distance'] = request.POST.get('distance', 1200)
-	c['current_term'] = request.POST.get('term', "food")
-	c['current_cat'] = request.POST.get('cat')
 	
 	page = request.POST.get('page',1)
 	print(page)
@@ -248,18 +312,16 @@ def detailed_results(request):
 		distance *= 1609.34
 	if distance > 40000:
 		distance = 40000
-	if c['current_term'] != "":
-		if c['current_cat'] == "all":
-			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
-		else:
-			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
+
+	#if c['current_term'] != "":
+	#	if c['current_cat'] == "all":
+	#		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
+	#	else:
+	#		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
 	
-	c['pages'] = list(range(1,math.ceil(total/20)+1))
-	c['current_page'] = page
-	print(c['results'])
-	address = request.POST.get("address")
-	
-	c["address"] = address
+	#c['pages'] = list(range(1,math.ceil(total/20)+1))
+	#c['current_page'] = page
+	#print(c['results'])
 	return render(request, 'search/detailed_results.html', c)
 
 

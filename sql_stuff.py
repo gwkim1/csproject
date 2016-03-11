@@ -37,7 +37,7 @@ test_coordinates={"me": (41.783213,-87.601375), "low crime": (41.973047, -87.777
                   "middle_of_nowhere": (41.767393, -87.751276), "high_crime": (41.877388, -87.730634)}
 
 sql_strings={"crimes":
-                      {1: '''SELECT date, primary_type, secondary_type, longitude, latitude FROM IUCR_codes JOIN crimes 
+                      {1: '''SELECT date, primary_type, secondary_type, latitude, longitude FROM IUCR_codes JOIN crimes 
                              ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) 
                              AND distance({},{}, latitude, longitude)<={} AND primary_type IN {};''',
 
@@ -51,10 +51,10 @@ sql_strings={"crimes":
 
                        2: '''SELECT count(*) FROM fire_police WHERE type={}'''}}
 
-CRIME_TYPES={"Violent crimes":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'", "'HOMICIDE'", "'KIDNAPPING'", "'SEX OFFENSE'", "'INTIMIDATION'", "'WEAPONS VIOLATION'", '"OFFENSE INVOLVING CHILDREN"'],
-            "Property crimes":['"ARSON"', '"BURGLARY"', '"CRIMINAL DAMAGE"', '"MOTOR VEHICLE THEFT"', '"ROBBERY"'],
-            "Other victimed non-violent crimes":['"CRIMINAL TRESSPASS"','"CRIMINAL ABORTION"', '"STALKING"',  '"OTHER OFFENSE"', '"RITUALISM"'],
-            "Quality of life crimes": ['"INTERFERENCE WITH PUBLIC OFFICER"','"DECEPTIVE PRACTIVE"', '"GAMBLING"', '"LIQUOR LAW VIOLATION"', '"OBSCENITY"' '"HUMAN TRAFFICKING"', '"PROSTITUTION"',
+CRIME_TYPES={"Violent":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'", "'HOMICIDE'", "'KIDNAPPING'", "'SEX OFFENSE'", "'INTIMIDATION'", "'WEAPONS VIOLATION'", '"OFFENSE INVOLVING CHILDREN"'],
+            "Property":['"ARSON"', '"BURGLARY"', '"CRIMINAL DAMAGE"', '"MOTOR VEHICLE THEFT"', '"ROBBERY"'],
+            "Other":['"CRIMINAL TRESSPASS"','"CRIMINAL ABORTION"', '"STALKING"',  '"OTHER OFFENSE"', '"RITUALISM"'],
+            "QoL": ['"INTERFERENCE WITH PUBLIC OFFICER"','"DECEPTIVE PRACTIVE"', '"GAMBLING"', '"LIQUOR LAW VIOLATION"', '"OBSCENITY"' '"HUMAN TRAFFICKING"', '"PROSTITUTION"',
                                        '"PUBLIC INDECENCY"', '"PUBLIC PEACE VIOLATION"', '"NARCOTICS"', '"OTHER NARCOTIC VIOLATION"','"CONCEALED CARRY LICENSE VIOLATION"']
             }
 CHICAGO_AREA=606100000
@@ -207,18 +207,7 @@ def crime_search(time, list_of_houses, distance, prop_area, cursor):
             prop_crimes=num_local_crimes/total_i_crimes
             score=score_normalizer(prop_crimes/prop_area)
             rv[j][i]=(local_results, score)
-            #print("found {} local results, ratio of crime is {}, ratio of area is {}, crime density is {}, score is {}".format(num_local_crimes, prop_crimes, prop_area, prop_crimes/prop_area, score))
         print("done")
-        #returns a list of dictionaries with keys as category, values as tuples with results, prop crimes, in the order in which they come in in list_of_houses
-        #example output:
-        #[
-        #  {"Violent Crimes":([list of results], score),
-        #   "Quality of life crimes": ([list of results], score),
-        #   etc},
-        #
-        #  { etc
-        #    }
-        #]
     return rv
 
 
