@@ -84,7 +84,6 @@ def results(request):
 		year=search_date.group(1)
 		if year not in ["2013", "2014", "2015", "2016"]:
 			errors.append("no data available for year {}".format(year))
-		database_name=str(year.strip())+".db"
 	weights=[]
 	for j in range(1,16):
 		try:
@@ -186,7 +185,7 @@ def results(request):
 
 	Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
 	#print(len(Yelp_results[0]))
-	database_results=sql_stuff.search(date, list_of_house_coords, distance, database_name)
+	database_results=sql_stuff.search(date, list_of_house_coords, distance, "search.db")
 	
 	database_scores=[]
 	for l in database_results:
@@ -282,13 +281,13 @@ def detailed_results(request):
 				c["current_address"]=row[1]
 				c["current_house_id"]=house_id
 				break
+	c['current_distance'] = request.POST.get('distance', 1200)
 	data=[]
 	all_crimes={}
-	line_styles=[".r--", ".b--", ".g--", ".y--"]
-	plt.subplot(111)
+	line_styles=[".r-", ".b-", ".g-", ".y-"]
 	for j in DATABASE_CATEGORIES:
 		all_crimes[j]={}
-		with open(HOUSE_PATH+"/{}/{}.csv".format(house_id.strip(), j), "r") as f:
+		with open(HOUSE_PATH+"/{}/{}.csv".format(house_id.strip(),j), "r") as f:
 			header=f.readline()
 			reader=csv.reader(f)
 			for row in reader:
@@ -298,17 +297,24 @@ def detailed_results(request):
 		t_labels=list(all_crimes[j].keys())
 		t_labels.sort()
 		t=range(len(t_labels))
-		plt.xticks(t, t_labels, rotation=30)
 		s=[all_crimes[j][k] for k in t_labels]
-		plt.plot(t, s, line_styles.pop(), label =j)
+
+		if len(t)>15:
+			step=(len(t)//15)+1
+			for k in range(len(t_labels)):
+				if k%step!=0:
+					t_labels[k]=""
+			plt.xticks(t, t_labels, rotation=30)	
+			plt.plot(t, s, line_styles.pop(), label =j)
 	plt.xlabel("Date YYYY-MM")
 	plt.ylabel("Number of crimes")
-	plt.title("Historical crime in this neighborhood")
-	plt.grid(True)
+	plt.title("Crime within {}m of this property".format(distance))
 	plt.legend()
+	plt.grid(True)
 	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
+	plt.clf()
 	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
-	c['current_distance'] = request.POST.get('distance', 1200)
+	
 	
 	page = request.POST.get('page',1)
 	c['current_cat'] = request.POST.get('cat')

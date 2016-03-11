@@ -124,8 +124,11 @@ def check_codes(filename):
 			d[row[0].strip()]=(row[1].strip(),row[2].strip())
 
 		readerf=csv.reader(f, delimiter=",")
+		count=1
 		for row in readerf:
-			assert d[row[4].strip()]==(row[5].strip(), row[6].strip()), "code {} is {},{} in crime file, but {},{} in IUCR codes".format( row[4].strip() , d[row[4].strip()][0] ,d[row[4].strip()][1] ,row[5].strip(),row[6].strip())
+			if row[4].strip()!="5114":
+			    assert d[row[4].strip()]==(row[5].strip(), row[6].strip()), "code {} in row {} is {},{} in crime file, but {},{} in IUCR codes".format( row[4].strip() , count+1, d[row[4].strip()][0] ,d[row[4].strip()][1] ,row[5].strip(),row[6].strip())
+			    count+=1
 
 def remove_columns(filename, columns_to_erase):
 	'''columns=list of column strings to remove. Checks header in filename given, assumed csv
@@ -185,7 +188,7 @@ def clean_crime_csv(filename):
 	'''Runs a sequence of functions above, which was originally run for all crime files
 	Makes my job easier when I redownload an updated crimes_2016.csv.
 	Please run ./comma_parser.sh crimes_2016.csv BEFORE running this'''
-	keep_these_columns=["Date", "IUCR", "Location Description", "Latitude", "Longitude"]
+	keep_these_columns=["Date", "IUCR", "Latitude", "Longitude"]
 	header=get_header(filename)
 	n=header.index("IUCR")
 	cols_to_remove=[j for j in header if j not in keep_these_columns]
