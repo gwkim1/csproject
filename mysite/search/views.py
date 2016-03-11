@@ -153,7 +153,7 @@ def results(request):
 
 	#run the data through
 	criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit], ["bedroom", current_min_bedroom, current_max_bedroom],
-                      ["bathroom", current_min_bathroom, current_max_bathroom],["size", 0, 10000], house_types]
+                      ["bathroom", current_min_bathroom, current_max_bathroom], house_types]
 	# criteria_list =  [["price", 20000, 80000], ["bedroom", 1, 3], ["bathroom", 1, 3], ["size", 900, 1300],
 	print("Querying zillow...")
 	#url=zillow.create_url(loc, listing_type, criteria_list)
@@ -185,7 +185,7 @@ def results(request):
 	#	fake_yelp.append(new_list)
 
 	Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
-	print(len(Yelp_results[0]))
+	#print(len(Yelp_results[0]))
 	database_results=sql_stuff.search(date, list_of_house_coords, distance, database_name)
 	
 	database_scores=[]
@@ -197,7 +197,7 @@ def results(request):
 	#	total_scores.append(fake_yelp[i]+database_scores[i])
 	for i in range(len(Yelp_results)):
 		total_scores.append(Yelp_results[i]+database_scores[i])
-	print(len(total_scores[0]))
+	#print(len(total_scores[0]))
 	# FOR ERIC
 	# WEIGHTS FOR ZILLOW IN ORDER OF PRICE, HOUSETYPE, BATHROOM, BEDROOM: zillow_pref
 	# LIST OF HOUSE TYPES: house_types
@@ -209,6 +209,7 @@ def results(request):
 	house_list = result
 	# get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref)
 	score_array = ranking.create_array(house_list, criteria_list)
+	ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref, Yelp_pref)
 	#print(criteria_list)
 	#if sum(weights) !=0:
 		#print(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref)
@@ -264,7 +265,10 @@ def results(request):
 def detailed_results(request):
 	
 	c = {}
+	c["myHiddenField"] = request.POST.get("a")
+	print("HERE", request.POST.get("a"))
 	house_id=request.POST.get("house_id")
+	print("adsf",house_id)
 	with open(HOUSE_PATH+"/attributes.csv", "r") as f:
 		header=f.readline()
 		reader=csv.reader(f)
@@ -279,7 +283,6 @@ def detailed_results(request):
 				c["current_house_id"]=house_id
 				break
 	data=[]
-	print("LAT:" , c["current_lat"])
 	all_crimes={}
 	line_styles=[".r--", ".b--", ".g--", ".y--"]
 	plt.subplot(111)
@@ -304,8 +307,7 @@ def detailed_results(request):
 	plt.grid(True)
 	plt.legend()
 	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
-	c["crime_graph"]= HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
-
+	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
 	c['current_distance'] = request.POST.get('distance', 1200)
 	
 	page = request.POST.get('page',1)
@@ -318,10 +320,10 @@ def detailed_results(request):
 		distance *= 1609.34
 	if distance > 40000:
 		distance = 40000
-	print(current_path, project_path, HOUSE_PATH)
+	#print(current_path, project_path, HOUSE_PATH)
 	c["current_term"] =request.POST.get("term", "food")
 	#if c['current_term'] != "":
-	print(c["current_term"])
+	#print(c["current_term"])
 	print((c["current_lat"], c["current_long"]), distance, c['current_term'], (int(page)-1)*20)
 	if c['current_cat'] == "all" or c["current_cat"] == None:
 		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = (int(page)-1)*20)
@@ -330,5 +332,5 @@ def detailed_results(request):
 
 	c['pages'] = list(range(1,math.ceil(total/20)))
 	c['current_page'] = page
-	print(c['results'])
+	#print(c['results'])
 	return render(request, 'search/detailed_results.html', c)

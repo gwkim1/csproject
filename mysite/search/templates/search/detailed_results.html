@@ -12,11 +12,10 @@ body {
 </head>
     
 <title> main page </title>
-<p> Detailed Results for {{current_address}}</p>
+<h3> Detailed Results for {{current_address}}</h3>
 <p>Price: ${{current_price}} </p>
 <p>Bathroom: {{current_bathroom}} </p>
 <p>Bedroom: {{current_bedroom}}</p>
-
 <form method="post">
     {% csrf_token %}
     <label for="distance">Distance: </label>
@@ -86,7 +85,6 @@ function initMap() {
   for (var i = 0; i < results.length; i++){
 
   var TempLatLng = new google.maps.LatLng(results[i][4],results[i][5]);
-
   var marker = new google.maps.Marker({
     label: results[i][6],
     map: map,

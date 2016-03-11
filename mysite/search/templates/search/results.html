@@ -12,21 +12,29 @@ body {
 <title> Results</title>
 
 <h1> Here are your results </h1>
-
+<p id = "b"></p>
 <ul>
+  <!--
     {% for result in results %}
     <li> 
     <form method="post" action="{% url 'detailed_results'%}">
     	{% csrf_token %}
     	<p> {{ result.address }}<br> Price: ${{result.price}}<br> Score: {{ result.score }}
         <br> Type: {{ result.house_type }}<br> Bathrooms: {{ result.bathroom }}<br> Bedrooms: {{ result.bedroom }}
-        <br> Size: {{ result.size }}
         </p>
     <input type="hidden" name="house_id" value=" {{ result.house_id }}">
+    
     <input type="submit" value="Learn more" display="none">
     </form>
     </li>
     {% endfor %}
+-->
+    <form method="post" action="{% url 'detailed_results'%}">
+      {% csrf_token %}
+     
+    <input type="hidden" id="house_id" name = "house_id" value=""/>
+    
+    <input type="submit" value="SELECT" display="none">
 </ul>
 
   <head>
@@ -36,25 +44,73 @@ body {
       google.charts.setOnLoadCallback(drawTable);
 
       function drawTable() {
+
         var data = new google.visualization.DataTable();
+
         //var results = "{{ variable_list }}";
+
         //var len_results = results.length;
+        data.addColumn('string', 'house_id');
         data.addColumn('string', 'Address');
+        data.addColumn('string', 'Score');
         data.addColumn('number', 'Price');
+        data.addColumn('string', 'House Type');
+        data.addColumn('string', 'Bathrooms');
+        data.addColumn('string', 'Bedrooms');
+
         
+
         {% for result in results %}
+
         data.addRow(
-          ['{{result.address}}',  parseInt('{{result.price}}')]);
+
+          ['{{result.house_id}}','{{result.address}}', '{{result.score}}',  parseInt('{{result.price}}'), '{{result.house_type}}', '{{result.bathroom}}', '{{result.bedroom}}']);
+
         {% endfor %}
+
     
+
         var table = new google.visualization.Table(document.getElementById('table_div'));
 
-        table.draw(data, {showRowNumber: true, width: '100%', height: '100%'});
+
+
+        table.draw(data, {showRowNumber: true, width: '50%', height: '50%'});
+
+        google.visualization.events.addListener(table, 'select', selectHandler);
+
+
+
+// The selection handler.
+
+// Loop through all items in the selection and concatenate
+
+// a single message from all of them.
+
+function selectHandler() {
+  var selection = table.getSelection();
+  
+  for (var i = 0; i < selection.length; i++) {
+    var item = selection[i];
+    if (item.row != null) {
+      var str = data.getFormattedValue(item.row, 0);
+      var message = str;
+    }
+    }
+    document.getElementById("b").innerHTML = message;
+    document.getElementById("house_id").value = message;
+    alert(message);
+}
+
       }
+
     </script>
+
   </head>
+
   <body>
+
     <div id="table_div"></div>
+
   </body>
 
 
