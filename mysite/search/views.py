@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import django.contrib.staticfiles
 import sys
 import os
 import re
@@ -246,7 +247,11 @@ def results(request):
 	with open(HOUSE_PATH+"/attributes.csv", "w") as f:
 		f.write("id,address,price,bedroom,bathroom,latitude,longitude,score\n")
 		for j in result:
-			row_string="{},{},{},{},{},{},{},{}".format(j.house_id, j.address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score)
+			address = j.address
+			if "," in address:
+				address = address.replace(',', '')
+
+			row_string="{},{},{},{},{},{},{},{}".format(j.house_id, address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score)
 			f.write(row_string+"\n")
 
 	variable_list = []
@@ -264,7 +269,7 @@ def detailed_results(request):
 		header=f.readline()
 		reader=csv.reader(f)
 		for row in reader:
-			if row[0]==house_id:
+			if int(row[0])==int(house_id):
 				c["current_lat"]=row[5]
 				c["current_long"]=row[6]
 				c["current_bedroom"]=row[3]
@@ -274,6 +279,7 @@ def detailed_results(request):
 				c["current_house_id"]=house_id
 				break
 	data=[]
+	print("LAT:" , c["current_lat"])
 	all_crimes={}
 	line_styles=[".r--", ".b--", ".g--", ".y--"]
 	plt.subplot(111)
@@ -298,12 +304,12 @@ def detailed_results(request):
 	plt.grid(True)
 	plt.legend()
 	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
-	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
+	c["crime_graph"]= HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
+
 	c['current_distance'] = request.POST.get('distance', 1200)
 	
 	page = request.POST.get('page',1)
-	print(page)
-	print(c['current_cat'])
+	c['current_cat'] = request.POST.get('cat')
 	
 	c['categories'] = ["all","restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
 	distance = float(c["current_distance"])
@@ -312,14 +318,17 @@ def detailed_results(request):
 		distance *= 1609.34
 	if distance > 40000:
 		distance = 40000
+	print(current_path, project_path, HOUSE_PATH)
+	c["current_term"] =request.POST.get("term", "food")
+	#if c['current_term'] != "":
+	print(c["current_term"])
+	print((c["current_lat"], c["current_long"]), distance, c['current_term'], (int(page)-1)*20)
+	if c['current_cat'] == "all" or c["current_cat"] == None:
+		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = (int(page)-1)*20)
+	else:
+		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], category_filter = c['current_cat'], offset = (int(page)-1)*20)
 
-	if c['current_term'] != "":
-		if c['current_cat'] == "all":
-			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
-		else:
-			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
-	
-	c['pages'] = list(range(1,math.ceil(total/20)+1))
+	c['pages'] = list(range(1,math.ceil(total/20)))
 	c['current_page'] = page
 	print(c['results'])
 	return render(request, 'search/detailed_results.html', c)

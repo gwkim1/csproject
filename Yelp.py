@@ -46,7 +46,7 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=
   params = {}
   params["ll"] = "{},{}".format(str(lat),str(long))
   params["radius_filter"] = radius
-  if term != "":
+  if term != '' and term != None:
     params["term"] = term
   if limit != 0:
     params["limit"] = limit

@@ -17,10 +17,15 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 
+
+
 urlpatterns = [
     url(r'^results/', 'search.views.results', name="results"),
     url(r'^admin/', admin.site.urls),
     url(r'^home/', 'search.views.homepage', name="home"),
     url(r'^about/', 'search.views.about', name="about"),
     url(r'^detailed_results/', 'search.views.detailed_results', name="detailed_results")
-]
+   ]
+
+
+

@@ -13,6 +13,9 @@ body {
     
 <title> main page </title>
 <p> Detailed Results for {{current_address}}</p>
+<p>Price: ${{current_price}} </p>
+<p>Bathroom: {{current_bathroom}} </p>
+<p>Bedroom: {{current_bedroom}}</p>
 
 <form method="post">
     {% csrf_token %}
@@ -24,7 +27,7 @@ body {
       
     </select>
     </br>
-    <label for="term">Search Yelp: </label>
+   <label for="term">Search Yelp: </label>
     <input id="term" type="string" name="term" value="{{ current_term }}">
     <input type="hidden" name="house_id" value=" {{ current_house_id }}">
 
@@ -102,8 +105,6 @@ function initMap() {
     </script>
   </body>
 
-<h3> Crime map </h3>
-<img src="{{ crime_graph }}" alt="historical crime graph"> 
 
 
 </html>
