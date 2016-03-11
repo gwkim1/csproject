@@ -103,7 +103,7 @@ def results(request):
 			house_types.append(house_type2)
 			if house_type3 != "":
 				house_types.append(house_type3)
-		house_types.append(500)
+		#house_types.append(500)
 	except:
 		errors.append("Need first field for house type preference")
 
@@ -147,9 +147,9 @@ def results(request):
 
 
 	#run the data through
-	criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit, None, 300], ["bedroom", current_min_bedroom, current_max_bedroom, None, 400],
-                      ["bathroom", current_min_bathroom, current_max_bathroom, None, 100],["size", 0, 10000, None, 100], house_types]
-	
+	criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit], ["bedroom", current_min_bedroom, current_max_bedroom],
+                      ["bathroom", current_min_bathroom, current_max_bathroom],["size", 0, 10000], house_types]
+	# criteria_list =  [["price", 20000, 80000], ["bedroom", 1, 3], ["bathroom", 1, 3], ["size", 900, 1300],
 	print("Querying zillow...")
 	#url=zillow.create_url(loc, listing_type, criteria_list)
 	#soup=zillow.get_soup(url)
@@ -180,7 +180,9 @@ def results(request):
 	#	fake_yelp.append(new_list)
 
 	Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
+	#print(len(Yelp_results[0]))
 	database_results=sql_stuff.search(date, list_of_house_coords, distance, database_name)
+	
 	database_scores=[]
 	for l in database_results:
 		house_scores=[l[j][1] for j in DATABASE_CATEGORIES]
@@ -188,6 +190,7 @@ def results(request):
 	total_scores = []
 	for i in range(len(Yelp_results)):
 		total_scores.append(Yelp_results[i]+database_scores[i])
+	print(len(total_scores[0]))
 	# FOR ERIC
 	# WEIGHTS FOR ZILLOW IN ORDER OF PRICE, HOUSETYPE, BATHROOM, BEDROOM: zillow_pref
 	# LIST OF HOUSE TYPES: house_types
@@ -195,8 +198,14 @@ def results(request):
 	# PEDROS AND RYANS WEIGHTS: database_pref, Yelp_pref
 
 		
-	print(zillow_pref, database_pref, Yelp_pref, house_types, total_scores)
-
+	# print(zillow_pref, database_pref, Yelp_pref, house_types, total_scores)
+	house_list = result
+	# get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref)
+	score_array = ranking.create_array(house_list, criteria_list)
+	#print(criteria_list)
+	#if sum(weights) !=0:
+		#print(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref)
+		#print(ranking.get_final_scores(house_list, score_array, total_scores, zillow_pref, database_pref, Yelp_pref))
 	'''
 	for j in range(len(Yelp_results)):
 	#for j in range(len(fake_yelp)):
@@ -212,7 +221,11 @@ def results(request):
 	result = sorted(result, key=lambda x: x.score)
 	result.reverse()
 	'''
+	variable_list = []
+	for house in result:
+		variable_list.append([house.score, house.address, house.lat, house.long, house.price, house.bathroom, house.bedroom])
 	c={'results': result}
+	c['variable_list'] = variable_list
 	return render(request, 'search/results.html', c)
 
 def detailed_results(request):
@@ -220,11 +233,11 @@ def detailed_results(request):
 	c = {}
 	c["current_lat"] = request.POST.get("lat")
 	c["current_long"] = request.POST.get("long")
-	c['current_distance'] = request.POST.get('distance', 500)
+	c['current_distance'] = request.POST.get('distance', 1200)
 	c['current_term'] = request.POST.get('term', "food")
 	c['current_cat'] = request.POST.get('cat')
 	
-	page = request.POST.get('page')
+	page = request.POST.get('page',1)
 	print(page)
 	#print(c['current_cat'])
 	
