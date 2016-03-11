@@ -12,7 +12,7 @@ body {
 </head>
     
 <title> main page </title>
-<p> Detailed Results for {{address}}</p>
+<p> Detailed Results for {{current_address}}</p>
 
 <form method="post">
     {% csrf_token %}
@@ -26,9 +26,7 @@ body {
     </br>
     <label for="term">Search Yelp: </label>
     <input id="term" type="string" name="term" value="{{ current_term }}">
-    <input type="hidden" name="address" value=" {{ address }}">
-    <input type="hidden" name="lat" value=" {{ current_lat }}">
-    <input type="hidden" name="long" value=" {{ current_long }}">
+    <input type="hidden" name="house_id" value=" {{ current_house_id }}">
 
     <li>Pick a category</li>
     {% for category in categories %}
@@ -49,15 +47,7 @@ body {
   {% for result in results %}
   <p> {{result.6}}:   {{result.0}}  Rating: {{result.2}} # of Ratings: {{result.3}} </p>
   {% endfor %} 
-<p> 1 Property </p>
-
-
-
-
-
-
-
-
+<p> 1 Property </p> 
 <head>
     <style type="text/css">
       html, body { height: 100%; margin: 0; padding: 0; }
@@ -86,7 +76,7 @@ function initMap() {
   var marker = new google.maps.Marker({
     map: map,
     position: myLatLng,
-    title: "{{address}}",
+    title: "{{current_address}}",
     label: '1'
   });
   bounds.extend(myLatLng);
@@ -112,6 +102,8 @@ function initMap() {
     </script>
   </body>
 
+<h3> Crime map </h3>
+<img src="{{ crime_graph }}" alt="historical crime graph"> 
 
 
 </html>
