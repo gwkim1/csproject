@@ -11,7 +11,7 @@ project_path=os.path.abspath("..")+"/"
 sys.path.insert(0, project_path)
 import zillow
 import sql_stuff
-#import Yelp
+import Yelp
 import ranking
 import shutil
 
@@ -176,15 +176,15 @@ def results(request):
 	scores=[]
 
 	#for when I test at csil
-	fake_yelp=[]
-	for k in range(len(result)):
-		new_list=[]
-		for j in range(7):
-			new_list.append(0)
-		fake_yelp.append(new_list)
+	#fake_yelp=[]
+	#for k in range(len(result)):
+	#	new_list=[]
+	#	for j in range(7):
+	#		new_list.append(0)
+	#	fake_yelp.append(new_list)
 
-	#Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
-	#print(len(Yelp_results[0]))
+	Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
+	print(len(Yelp_results[0]))
 	database_results=sql_stuff.search(date, list_of_house_coords, distance, database_name)
 	
 	database_scores=[]
@@ -192,10 +192,10 @@ def results(request):
 		house_scores=[l[j][1] for j in DATABASE_CATEGORIES]
 		database_scores.append(house_scores)
 	total_scores = []
-	for i in range(len(fake_yelp)):
-		total_scores.append(fake_yelp[i]+database_scores[i])
-	#for i in range(len(Yelp_results)):
-	#	total_scores.append(Yelp_results[i]+database_scores[i])
+	#for i in range(len(fake_yelp)):
+	#	total_scores.append(fake_yelp[i]+database_scores[i])
+	for i in range(len(Yelp_results)):
+		total_scores.append(Yelp_results[i]+database_scores[i])
 	print(len(total_scores[0]))
 	# FOR ERIC
 	# WEIGHTS FOR ZILLOW IN ORDER OF PRICE, HOUSETYPE, BATHROOM, BEDROOM: zillow_pref
@@ -296,14 +296,14 @@ def detailed_results(request):
 	plt.ylabel("Number of crimes")
 	plt.title("Historical crime in this neighborhood")
 	plt.grid(True)
-	plt.legend()#bbox_to_anchor=(1,1), loc=2, borderaxespad=0.)
+	plt.legend()
 	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
 	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
 	c['current_distance'] = request.POST.get('distance', 1200)
 	
 	page = request.POST.get('page',1)
 	print(page)
-	#print(c['current_cat'])
+	print(c['current_cat'])
 	
 	c['categories'] = ["all","restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
 	distance = float(c["current_distance"])
@@ -313,16 +313,13 @@ def detailed_results(request):
 	if distance > 40000:
 		distance = 40000
 
-	#if c['current_term'] != "":
-	#	if c['current_cat'] == "all":
-	#		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
-	#	else:
-	#		c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
+	if c['current_term'] != "":
+		if c['current_cat'] == "all":
+			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], offset = int(page)*20)
+		else:
+			c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], c['current_cat'], offset = int(page)*20)
 	
-	#c['pages'] = list(range(1,math.ceil(total/20)+1))
-	#c['current_page'] = page
-	#print(c['results'])
+	c['pages'] = list(range(1,math.ceil(total/20)+1))
+	c['current_page'] = page
+	print(c['results'])
 	return render(request, 'search/detailed_results.html', c)
-
-
-# Create your views here.
