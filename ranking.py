@@ -34,22 +34,31 @@ second ~ last:
 
 
 def get_house_list(zipcode, listing_type, criteria_list):
-    url = zillow.create_url(zipcode, listing_type, criteria_list)
-    soup = zillow.get_soup(url)
-    house_list = zillow.create_house_objects(soup, url)
-    print("num of houses before running create_array:", len(house_list))
-    new_house_list = create_array(house_list, criteria_list, return_list=True)
-    return new_house_list
+    '''
+    This combines all functions involved in getting a list of House objects
+    based on user inputs from the website
 
-'''
-def get_house_list_alt(zipcode, listing_type, criteria_list):
+    Inputs
+    zipcode: zipcode within which the user wants the search
+    listing_type: either "sale" or "rent"
+    criteria_list: list of lists that sets each condition
+    e.g. [["price", 1000, 2000], ["bedroom", 1, 3], ["size", 800, 1000], 
+          ["house_type", "houses", "apartments", "condos/co-ops"]]
+    for numerical variable, the two number represents lower/upper bound
+    for categorical variable, possible values are listed in order of preference
+    
+    Returns
+    The list of House objects
+    '''
+    # The first three functions are explained in zillow.py
     url = zillow.create_url(zipcode, listing_type, criteria_list)
     soup = zillow.get_soup(url)
     house_list = zillow.create_house_objects(soup, url)
-    #print(house_list)
-    #new_house_list = create_array(house_list, criteria_list, return_list=True)
-    return house_list
-'''
+    # Return a new house list after filtering houses for the last time
+    # Using the same criteria_list
+    # The reason for this last filtering will be explained later
+    new_house_list = filter_house(house_list, criteria_list)
+    return new_house_list
 
 '''
 FOR RYAN AND PEDRO: when your website gives the scores and weights back run get_final_scores to get
@@ -60,14 +69,41 @@ Need to change the same of the arguments so that they are intuitive
 
 CRITERION_DICT = {0: "price", 1: "house_type", 2: "bathroom", 3: "bedroom", 4: "restaurants", 5: "active life" , 6: "arts and entertainment", 7: "schools/education", 8: "health establishments", 9: "nightlife", 10: "shopping outlets", 11: "violent crime", 12: "property crime", 13: "other victimed non-violent crime", 14: "quality of life crime"}
 
-def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, database_pref, Yelp_pref):
+def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, chicago_pref, Yelp_pref):
+    '''
+    After the website takes in user preferences for conditions related to
+    Zillow, City of Chicago Database, and Yelp,
+    And after the scores for City of Chicago and Yelp data are created,
+    Merge the preferences and scores with scores created with Zillow data
+    This function will eventually store the final weighted score in each House
+    Object and also return data that would be used in creating charts
+
+    Inputs
+    house_list: list of House objects that went through the final filtering
+    criteria_list: list of conditions that the user specified.
+    (specific format given elsewhere)
+    ypchicago_scores: array(list of lists) of scores using Yelp and Chicago data
+    zillow_pref: list of preferences(weights) about data from zillow
+                 that is revealed by the user input in website  
+    chicago_pref: list of preferences about the chicago data
+    Yelp_pref: list of preferences about the Yelp data
+
+    Returns
+    1. Updates self.score in House object with the final weighted score
+    2. Returns a list of dictionaries for drawing charts per each condition
+    example format with 2 conditions and 3 houses: 
+    [ {"price": [29, 40, 70]}, {"Nightlife": [93, 20, 84]} ] 
+    '''
+    # First convert ypchicago_scores to a numpy array
     ypchicago_scores = np.array(ypchicago_scores)
+    # Get a numpy score array for the criteria related to zillow data as well
     zillow_scores = get_zillow_scores(house_list, criteria_list)
+    # Concatenate ypchicago_scores array with zillow_scores array
     array_list = [zillow_scores, ypchicago_scores]
-    weight_list = zillow_pref + database_pref + Yelp_pref
-
-
     new_array = concatenate_arrays(array_list)
+    # Combine the user preferences on the 3 datasets
+    weight_list = zillow_pref + chicago_pref + Yelp_pref
+    # Apply the weights in order to get a single weighted score for each house
     weighted_array = get_weighted_score(new_array, weight_list)
 
     print("weight_list:", weight_list)
@@ -76,134 +112,53 @@ def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, d
         if weight_list[i] == 0:
             users_pref[i] = 1
 
+    # This list stores dictionaries with key: condition and value: scores
     score_per_criterion = []
     for i in range(len(users_pref)):
+        # Only create a dictionary for conditions which the user gave answers
         if users_pref[i] != 1:
             score_list = []
             for house_scores in new_array:
                 score_list.append(house_scores[i])
             score_per_criterion.append({CRITERION_DICT[i]: score_list})
-            
-    show_ranking(weighted_array, house_list)
+    
+    # Save the final weighted score in each House object as self.score
+    for i in range(len(house_list)):
+        house_list[i].score = weighted_array[i][0]
 
+    # Return the list that would be used for charts
     return score_per_criterion
-
-
-
 
 
 def get_zillow_scores(house_list, criteria_list):
     '''
-    do I need to sort criteria_list? prbly not
+    Get a numpy array that stores scores for each house and each criterion
+
+    Inputs
+    house_list, criteria_list explained elsewhere
+
+    Returns
+    a numpy array that represents each house in each row
+    and each criterion in each column
     '''
-    base_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
-    #print(base_array)
-    return calculate_preference(base_array, house_list, criteria_list)
+    # Create a base array with appropriate size and all 0s
+    array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
 
-
-def suggest_house(house_list, criteria_list, weight_list):
-    '''
-    This is a function that combines all functions under
-
-    house_list: [House, House, House] House objects
-    criteria_list: [["price", 1000, 2000], ["house_type", "houses", "apartments", "condos/co-ops"]]
-    for numerical criterion: [criterion name, lower bound, upper bound]
-    for categorical criterion: [criterion name, first choice, second choice .... nth choice]
-
-    returns a list with each tuple being: (ranking, address, score, house object)
-    '''
-    arr = create_array(house_list, criteria_list)
-    score_array = calculate_preference(arr, house_list, criteria_list)
-    weighted_array = get_weighted_score(score_array, weight_list)
-    return show_ranking(weighted_array, house_list)
-
-
-
-###### Order of zillow_pref: price house_type bathrooms bedrooms
-def sort_criteria_list(criteria_list):
-    order = ["price", "house_type", "bathroom", "bedroom"]
-    sorted_list = []
-    for criterion in order:
-        for block in criteria_list:
-            if block[0] == criterion:
-                sorted_list.append(block)
-    return sorted_list
-
-
-# This also deletes houses that does not meet criteria from the original house_list
-def create_array(house_list, criteria_list, return_list=False):
-    '''
-    Creates a numpy array to store the scores for every house and every criterion
-    For blocks in which a house doesn't meet a criterion, set the initial value as None
-
-    Output:
-    returns a numpy array filled with either 0 or None
-
-    I may have to delete the "deleting" part, but I need this just in case zillow returns
-    So while the criteria_list is the same as what we put in in create_url, what pedro and ryan should use
-    is the house_list that this function outputs.
-    '''
-    house_dict = {}
-    criteria_dict = {}
-
-    # should prbly define len of house_list and criteria_list
-
-    for i in range(len(house_list)):
-        house_dict[i] = house_list[i]
-    for j in range(len(criteria_list)):
-        criteria_dict[j] = criteria_list[j]
-
-    score_array = np.array([[0 for i in range(len(criteria_list))] for i in range(len(house_list))])
-
-    need_to_delete = set()
-
-
-    for i in range(len(house_list)):
-        for j in range(len(criteria_list)):
-            if type(criteria_dict[j][1]) == str:
-                if not (house_dict[i].info_dict[criteria_dict[j][0]] in criteria_dict[j]):
-                    need_to_delete.add(i)
-                    print("house", i, "does not meet criterion", j)
-                    print(house_dict[i].info_dict["address"])
-                    print(house_dict[i].info_dict[criteria_dict[j][0]])
-            else:                       
-                if not (house_dict[i].info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house_dict[i].info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]):
-                    need_to_delete.add(i)  
-                    print("house", i, "does not meet criterion", j)
-                    print(house_dict[i].info_dict["address"])
-                    print(house_dict[i].info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
-
-    if len(need_to_delete) != 0:
-        need_to_delete = list(need_to_delete)
-        need_to_delete.sort()
-        need_to_delete.reverse()
-
-    for i in need_to_delete:
-        score_array = np.delete(score_array, i, 0)
-        del house_list[i]        
-
-    if return_list == True:
-        return house_list
-
-    return score_array
-    
-
-
-def calculate_preference(array, house_list, criteria_list):
-    '''
-    NOTE
-    numpy array does not accept floating values! that is why I multiplied by 100 for now.
-
-    example of a tuple for categorical variable: ["house_type", "houses", "apartments", "condos/co-ops", 500]
-    '''
+    # For each criterion in criteria_list:
     for col in range(len(criteria_list)):
-        #print(criteria_list[col])
+        # First we need to set the "indifference" and "preference" threshold
+        # For example, if the user wants to buy a house in the price range (0, 70000)
+        # His preference may not be linear across the entire range
+        # If the price is close to 0, whether it is 100 or 200 would not matter
+        # So this could be considered as having surpassed the "preference" threshold
+        # And we assign a score of 1 equally
+        # Same for the "indifference" threshold. If the price is close to 70000
+        # We equally set the score to 0. Between the thresholds we assume linear preference 
         if type(criteria_list[col][1]) in [int, float]:
             range_len = criteria_list[col][2] - criteria_list[col][1]
             indifference = criteria_list[col][1] + range_len * 0.1
             preference = criteria_list[col][2] - range_len * 0.1
         else:
-            # Not sure about this
             indifference = 0
             preference = 1    
 
@@ -230,76 +185,74 @@ def calculate_preference(array, house_list, criteria_list):
     return array
     
 
+
+def filter_house(house_list, criteria_list):
+    '''
+    Creates a numpy array to store the scores for every house and every criterion
+    For blocks in which a house doesn't meet a criterion, set the initial value as None
+
+    Output:
+    returns a numpy array filled with either 0 or None
+
+    I may have to delete the "deleting" part, but I need this just in case zillow returns
+    So while the criteria_list is the same as what we put in in create_url, what pedro and ryan should use
+    is the house_list that this function outputs.
+    '''
+    criteria_dict = {}
+    for j in range(len(criteria_list)):
+        criteria_dict[j] = criteria_list[j]
+
+    for house in house_list:
+        remove = False
+        for j in range(len(criteria_list)):
+            if type(criteria_dict[j][1]) == str:
+                if not (house.info_dict[criteria_dict[j][0]] in criteria_dict[j]):
+                    print("house does not meet criterion", j)
+                    print(house.info_dict["address"])
+                    print(house.info_dict[criteria_dict[j][0]])
+                    remove = True
+            else:                       
+                if not (house.info_dict[criteria_dict[j][0]] >= criteria_dict[j][1] and house.info_dict[criteria_dict[j][0]] <= criteria_dict[j][2]): 
+                    print("house does not meet criterion", j)
+                    print(house.info_dict["address"])
+                    print(house.info_dict[criteria_dict[j][0]], criteria_dict[j][1], criteria_dict[j][2])
+                    remove = True  
+        if remove:
+            house_list.remove(house)
+
+    return house_list
+    
+
+
+
+
 def concatenate_arrays(array_list):
     '''
-    concatenates all numpy arrays
+    Concatenates all numpy arrays that store scores
     '''
     new_arr = array_list[0]
+    # Append second to last arrays to the first one
+    # axis=1 means we are extending the columns(criteria)
     for arr in array_list[1:]:
         new_arr = np.append(new_arr, arr, axis=1)
     return new_arr
 
 
-'''
-weight_list has to be the addition of the three weight_lists:
-zillow_pref + database_pref + Yelp_pref
-'''
 def get_weighted_score(score_array, weight_list):
+    '''
+    Apply weights to the score_array to get a single final score for each house
+
+    Inputs
+    score_array: array of scores for each house and each criterion
+    weight_list: list of weights for each criterion
+    '''
+    # Calculate total weight from the weight_list
     total_weight = 0
     for weight in weight_list:
         total_weight += weight
+    # Store the weight relative to the total weight in a numpy array
     weight_array = np.array([[weight_list[i]/total_weight] for i in range(len(weight_list))])
-    #for ctuple in criteria_list:
-    #    total_weight += ctuple[-1]
-    #    print(ctuple[-1])
-    #print(criteria_list[0][-1])
-    #print(criteria_list[0])
-    #weight_array = np.array([[criteria_list[i][-1]/total_weight] for i in range(len(criteria_list))])
-
-    '''
-    need to add list of weights that Pedro and Ryan would pass me back to weight_array
-    '''
+    # Conduct matrix calculation to apply the weights to the scores
     return np.dot(score_array, weight_array)
-
-
-# need tiebreaking + sorting along with house_list
-def show_ranking(weighted_array, house_list):
-    '''
-    Taking the array of weighted score and list of houses(that meet the criteria) as arguments,
-    returns a list of tuples sorted by score in descending order with
-    each tuple: (rank, house object, score)
-    '''
-    for i in range(len(house_list)):
-        house_list[i].score = weighted_array[i][0]
-
-    #for house in house_list:
-        #print(house.score, house.info_dict)
-
-    score_list = []
-    index = 0
-    for score in weighted_array:
-        score_list.append((score[0], index))
-        index += 1
-    score_list.sort()
-    score_list.reverse()
-    #print(score_list)
-
-    rank_list = []
-    for score_tuple in score_list:
-        # This if statement can probably be reduced to something simpler
-        rank_list.append(house_list[score_tuple[1]])        
-    return 111
-    print("rank_list:", rank_list)
-    return rank_list
-
-        #if len(rank_list) == 0:
-        #    rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-        #elif score_tuple[0] == rank_list[-1][2]:
-        #    print(rank_list[-1][0])
-        #    rank_list.append((rank_list[-1][0], house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-        #else:
-        #    rank_list.append((len(rank_list) + 1, house_list[score_tuple[1]].address, score_tuple[0], house_list[score_tuple[1]]))
-    #for house in rank_list:
-    #    print(house.score)
 
     

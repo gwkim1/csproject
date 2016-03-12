@@ -199,3 +199,149 @@ def create_house_objects(soup):
         #print("House created")
         
     return house_list
+
+
+
+
+
+# parts of the find_all and print command according to each output that we want to get
+COMMAND_DICT = {
+"address": ['span', {'itemprop': 'streetAddress'}],
+"latlong": ['meta', {'itemprop': re.compile(r'^(latitude|longitude)$')}],
+"house/listing": [],
+"price": ['dt', {'class': 'price-large'}],
+"bedroom": ['span', {'class': 'beds-baths-sqft'}],
+"bathroom": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"size": ['span', {'class': 'beds-baths-sqft'}], # same thing
+"built_year": ['span', {'class': 'built-year'}],
+"days_on_zillow": ['dt', {'class': 'doz'}],
+}
+
+'''
+    As output_info, put the key of the COMMAND_DICT above.
+    
+    house_articles = soup.find_all("article", {"class": "property-listing"})
+    similar_house_articles = soup.find_all("article", {"class": "relaxed-result"})
+    
+    for similar_house in similar_house_articles:
+        house_articles.remove(similar_house)
+
+    # Need to fix this too
+    if len(house_articles) >= 50:
+        print("too many search results: try to add conditions")
+        return
+        # And this should automatically lead back to create_url
+
+    #house_articles.difference_update(similar_house_articles)
+    # we may want address, latlong, house/listing, price, bedroom, bathroom, size, built_year, days on zillow
+    # For each house
+    
+    
+    final_result = []
+    for house_article in house_articles:
+        house = house_article.find("div", {'class': 'property-info'})
+        #print(house)
+        #print(house.find("span", {'itemprop': 'streetAddress'}).text)
+        #print(house.find("span", {'itemprop': 'streetAddress'}).text)
+        result_list = [house.find("span", {'itemprop': 'streetAddress'}).text]
+        # For each output information that the user wants
+        for info in output_info:
+            #print(info)
+            #print(COMMAND_DICT[info])
+            # Append the result into result_list
+            #print(COMMAND_DICT[info][0])
+            ##########Why isn't this working?
+            resultset = house.find_all(COMMAND_DICT[info][0], COMMAND_DICT[info][1])
+            for result in resultset:
+                if info == "latlong":
+                    result_list.append(result["content"])
+                
+
+
+                else:
+                    result_list.append(result.text)
+            #print(type(COMMAND_DICT[info][0]))
+            #print(COMMAND_DICT[info[0]])
+            #print(resultset)
+        final_result.append(result_list)
+    
+    return final_result
+'''
+
+
+'''
+    ONE APPROACH I TRIED WHICH IS MORE ACCRUATE BUT TAKES TOO MUCH TIME
+
+
+    still missing house_type, doz, built_year
+    
+    link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
+    link_soup = get_soup(link)
+    if link_soup.find("body")["id"] == "hdp":
+        print("this is hdp")
+        self.address = link_soup.find("header", {"class": "addr"}).find("h1").find("span").text
+        #print(self.address)
+        beds_baths_sqft = link_soup.find("header", {"class": "addr"}).find("h3").find_all("span", {"class" : "addr_bbs"})
+        #print(beds_baths_sqft)
+        if beds_baths_sqft[0].text == "Studio":
+            self.bedroom = 0
+        else:
+            self.bedroom = extract_numbers(beds_baths_sqft[0].text)
+        self.bathroom = extract_numbers(beds_baths_sqft[1].text)
+        self.size = extract_numbers(beds_baths_sqft[2].text)
+
+        if "for-rent" in link_soup.find("span", {"id": "listing-icon"})["class"]:
+            self.listing_type = "rent"
+        else:
+            self.listing_type = "sale"
+
+        self.price = extract_numbers(link_soup.find("div", {"class": "main-row"}).text)
+
+        self.lat = float(link_soup.find("span", {"id": "hdp-map-coordinates"})["data-latitude"])
+        self.long = float(link_soup.find("span", {"id": "hdp-map-coordinates"})["data-longitude"])
+        # div class "hdp-facts" can be useful
+        # section id "hdp-neighborhood" contains walk and transit scores
+        
+        # house_type isn't working.
+        #self.house_type = link_soup.find("div", {"class": "top-facts"}).find_all("li", {"id": re.compile('*')})
+
+
+        # This is not completed either.
+        self.info_dict = {"address": self.address, "price" : self.price, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
+
+    else:
+        print("this is bdp")
+        table_tag_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("a", {"class": "routable"})
+        link_list = []
+        for tag in table_tag_list:
+            link_list.append(tag["href"])
+        
+        for link in link_list:
+            new_link_soup = get_soup(link)
+            #### Start getting the info here.
+            #### How do we initialize mutliple houses in here?
+'''
+
+
+
+
+'''
+    This was in the House object __init__
+    extracting info from multiple units right from the original link. prbly not going to use this
+
+
+
+            if "grouped" in house_article["class"]:
+            # Should we set studios as having no bedroom?
+            unit_list = house_article.find("div", {"class": "unit-list"})
+            if unit_list.find('td', {'class': 'grouped-result-beds'}).text in ["Studios", "Studio"]:
+                self.bedroom = 0                
+            else:
+                self.bedroom = extract_numbers(unit_list.find('td', {'class': 'grouped-result-beds'}).text)
+
+            self.price = extract_numbers(unit_list.find('td', {'class': 'grouped-result-price'}).text)
+            self.size = extract_numbers(unit_list.find('td', {'class': 'zsg-table-col_num grouped-result-sqft'}).text)
+            self.doz = None
+            self.built_year = None
+            self.bathroom = None
+'''
