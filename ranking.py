@@ -102,7 +102,7 @@ def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, c
     array_list = [zillow_scores, ypchicago_scores]
     new_array = concatenate_arrays(array_list)
     # Combine the user preferences on the 3 datasets
-    weight_list = zillow_pref + chicago_pref + Yelp_pref
+    weight_list = zillow_pref + Yelp_pref + chicago_pref
     # Apply the weights in order to get a single weighted score for each house
     weighted_array = get_weighted_score(new_array, weight_list)
 
