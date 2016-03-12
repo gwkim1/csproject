@@ -90,9 +90,9 @@ def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, c
 
     Returns
     1. Updates self.score in House object with the final weighted score
-    2. Returns a list of dictionaries for drawing charts per each condition
+    2. Returns a dictionary of score lists for drawing charts per each condition
     example format with 2 conditions and 3 houses: 
-    [ {"price": [29, 40, 70]}, {"Nightlife": [93, 20, 84]} ] 
+    {"price": [29, 40, 70], "nightlife": [93, 20, 84]} 
     '''
     # First convert ypchicago_scores to a numpy array
     ypchicago_scores = np.array(ypchicago_scores)
@@ -112,21 +112,21 @@ def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, c
         if weight_list[i] == 0:
             users_pref[i] = 1
 
-    # This list stores dictionaries with key: condition and value: scores
-    score_per_criterion = []
+    # This dictionary has key: condition and value: list of scores for houses
+    score_per_criterion = {}
     for i in range(len(users_pref)):
-        # Only create a dictionary for conditions which the user gave answers
+        # Only create a key-value for conditions which the user gave answers
         if users_pref[i] != 1:
             score_list = []
             for house_scores in new_array:
                 score_list.append(house_scores[i])
-            score_per_criterion.append({CRITERION_DICT[i]: score_list})
+            score_per_criterion[CRITERION_DICT[i]] = score_list
     
     # Save the final weighted score in each House object as self.score
     for i in range(len(house_list)):
         house_list[i].score = weighted_array[i][0]
 
-    # Return the list that would be used for charts
+    # Return the dictionary that would be used for charts
     return score_per_criterion
 
 
