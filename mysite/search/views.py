@@ -240,6 +240,7 @@ def results(request):
 			    for k in database_results[index][j][0]:
 			    	#need all of them to be strings for the join method
 			    	tuple_list=[str(l) for l in k]
+			    	#print(tuple_list)
 			    	row_string=",".join(tuple_list)
 			    	f.write(row_string+"\n")
 		index+=1
@@ -253,12 +254,37 @@ def results(request):
 
 			row_string="{},{},{},{},{},{},{},{}".format(j.house_id, address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score)
 			f.write(row_string+"\n")
-
-	variable_list = []
-	for house in result:
-		variable_list.append([house.score, house.address, house.lat, house.long, house.price, house.bathroom, house.bedroom])
+	bar_data = []
+	all_crimes = {}
+	for i in result:
+		for j in DATABASE_CATEGORIES:
+			all_crimes[j]={}
+			with open(HOUSE_PATH+"/{}/{}.csv".format(i.house_id,j), "r") as f:
+				header=f.readline()
+				reader=csv.reader(f)
+				for row in reader:
+					date=row[0]
+					month_year=date[:7]
+					all_crimes[j][month_year]=all_crimes[j].get(month_year, 0)+1
+			t_labels=list(all_crimes[j].keys())
+			t_labels.sort()
+			t=range(len(t_labels))
+			s=[all_crimes[j][k] for k in t_labels]
+			bar_data.append((i.address, j, sum(s)))
+	bar_dict = {}
+	for i in bar_data:
+		if i[0] not in bar_dict:
+			bar_dict[i[0]] = [i[2]]
+		else:
+			bar_dict[i[0]].append(i[2])
+	bar_list = []
+	for key, value in bar_dict.items():
+		bar_list.append([key]+ value)
+	#print(bar_list)
 	c={'results': result}
-	c['variable_list'] = variable_list
+	c['database_cat'] = DATABASE_CATEGORIES
+	c['bar_data'] = bar_list
+	
 	return render(request, 'search/results.html', c)
 
 def detailed_results(request):
@@ -285,6 +311,9 @@ def detailed_results(request):
 	data=[]
 	all_crimes={}
 	line_styles=[".r-", ".b-", ".g-", ".y-"]
+	c['graph_data'] = []
+	graph_data_raw = []
+	c['pie_data']=[]
 	for j in DATABASE_CATEGORIES:
 		all_crimes[j]={}
 		with open(HOUSE_PATH+"/{}/{}.csv".format(house_id.strip(),j), "r") as f:
@@ -298,24 +327,39 @@ def detailed_results(request):
 		t_labels.sort()
 		t=range(len(t_labels))
 		s=[all_crimes[j][k] for k in t_labels]
-
+		c['pie_data'].append((j, sum(s)))
+		
 		if len(t)>15:
 			step=(len(t)//15)+1
 			for k in range(len(t_labels)):
 				if k%step!=0:
 					t_labels[k]=""
-			plt.xticks(t, t_labels, rotation=30)	
-			plt.plot(t, s, line_styles.pop(), label =j)
+		graph_data_raw.append((j,t_labels,s))
+		plt.xticks(t, t_labels, rotation=30)	
+		plt.plot(t, s, line_styles.pop(), label =j)
 	plt.xlabel("Date YYYY-MM")
 	plt.ylabel("Number of crimes")
-	plt.title("Crime within {}m of this property".format(distance))
+	plt.title("Crime within {}m of this property".format(c["current_distance"]))
 	plt.legend()
 	plt.grid(True)
 	plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
 	plt.clf()
 	c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
+	crime_list = []
+	for date in graph_data_raw[0][1]:
+		crime_list.append([date])
 	
-	
+	for i in range(len(graph_data_raw)):
+
+		crime_data = graph_data_raw[i][2]
+		#print(crime_data)
+		for j in range(len(crime_data)):
+			crime_list[j].append(crime_data[j])
+	c['graph_data'] = crime_list
+	c['database_cat'] = DATABASE_CATEGORIES
+	print(crime_list)
+
+
 	page = request.POST.get('page',1)
 	c['current_cat'] = request.POST.get('cat')
 	

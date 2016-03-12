@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html> 
 <head>
     <!-- Sets the background image -->
@@ -40,8 +41,9 @@ body {
   <head>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
-      google.charts.load('current', {'packages':['table']});
+      google.charts.load('current', {'packages':['table', 'bar']});
       google.charts.setOnLoadCallback(drawTable);
+      google.charts.setOnLoadCallback(drawChart);
 
       function drawTable() {
 
@@ -74,9 +76,18 @@ body {
 
 
 
-        table.draw(data, {showRowNumber: true, width: '50%', height: '50%'});
+        table.draw(data, {showRowNumber: false, width: '50%', height: '50%'});
 
         google.visualization.events.addListener(table, 'select', selectHandler);
+
+
+
+
+
+
+
+
+
 
 
 
@@ -98,9 +109,42 @@ function selectHandler() {
     }
     document.getElementById("b").innerHTML = message;
     document.getElementById("house_id").value = message;
-    alert(message);
 }
 
+      }
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+
+        //var results = "{{ variable_list }}";
+
+        //var len_results = results.length;
+        data.addColumn('string', 'Address');
+        {% for crime_type in database_cat %}
+
+        data.addColumn('number', '{{crime_type}}');
+
+        {% endfor %}
+
+
+        {% for data in bar_data %}
+
+        data.addRow(
+
+          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}')]);
+
+        {% endfor %}
+
+        var options = {
+          chart: {
+            title: 'Company Performance',
+            subtitle: 'Sales, Expenses, and Profit: 2014-2017',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+
+        var chart = new google.charts.Bar(document.getElementById('barchart'));
+
+        chart.draw(data, options);
       }
 
     </script>
@@ -110,8 +154,10 @@ function selectHandler() {
   <body>
 
     <div id="table_div"></div>
+    <div id="barchart" style="width: 900px; height: 500px;"></div>
 
   </body>
+
 
 
 
