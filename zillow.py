@@ -5,240 +5,224 @@ import urllib.request
 import re
 import time
 
-
+# Each House objects stores information about a single resulting rent/buy option from Zillow
 class House:
 
-	house_id=0
-	# Need to work more on this
+	# global variable 
+	house_id = 0
+	
 	def __init__(self, house_article, unit_info = None):
-
 		'''
-		if there are multiple matching list, we need to approach 
+		Defines a new House object
 
-		We assign: address, price, doz, built_year, bedroom, bathroom, size, and lat/long
+		Inputs
+		house_article: "article" tag in Zillow's html document for a single house
+		unit_info: if the search has several room options, 
+		each unit_info tag stores information about each room option
 		'''
-		# Just for debugging purpose. will delete later
-		self.article = house_article
-		self.missing_value = False
-
-		property_info = house_article.find("div", {'class': 'property-info'})
-
-		self.lat = float(house_article["latitude"])/1000000
-		self.long = float(house_article["longitude"])/1000000
+		# The final score weighted with various criteria will be stored here later
 		self.score = None
+		
+		# Assign unique ids to each House object
 		self.house_id = House.house_id
 		House.house_id += 1
-
-
 		
-		if property_info.find("a") != None:
-			self.address = property_info.find("a")["title"]
-		else:
-			print("@@@@@@@@@@@@@@@@@@@@@@@@@@@No address found")
-			# Not sure about this
-			self.address = "No address found"
+		# If the tags are missing any necessary information, this will later be
+		# Set to True and an additional function follow_link is run
+		self.missing_value = False
 
+		# Tag within "house_article" that stores most information
+		property_info = house_article.find("div", {'class': 'property-info'})
 
+		# Set the coordinates (originally stored w/o floating point). 
+		# This information is crucial in calculating scores
+		# Using the Yelp and City of Chicago data 
+		self.lat = float(house_article["latitude"])/1000000
+		self.long = float(house_article["longitude"])/1000000
+
+		# Link for page for each house options.
+		# This is used when there are missing values on the initial search page
+		# Or when the user wants to visit the Zillow page after getting
+		# The final result of our software.
+		self.link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
+		
+		# Address of the house
+		self.address = property_info.find("a")["title"]
+
+		# If the function get_house_type fails to extract the house type,
+		# Set missing_value to True (a more detailed page will be visited later)
 		if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
-			self.house_type = ""
-			print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
 			self.missing_value = True
 		else:
 			self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
 
-
-
-		'''
+		# For the price, number of bedrooms, number of bathrooms and size,
+		# 2 approaches were needed, as some rent search results
+		# Contained multiple options with different values
+		# If the rent search result includes multiple options:
 		if unit_info != None:
-			self.price = extract_numbers(unit_info.find("td", {"class": "building-units-price"}).text)
-			self.bedroom = eval(unit_info["data-bedroom"])
-			if extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text) == -1:
-				print("bathroom missing")
-				missing_value = True
-				self.bathroom = 0
-			else:
-				self.bathroom = extract_numbers(unit_info.find("td", {"class": "building-units-baths"}).text)
-			
-			if extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text) == -1:
-				print("size missing")
-				missing_value = True
-				self.size = 0
-			else:
-				self.size = extract_numbers(unit_info.find("td", {"class": "building-units-sqft"}).text)
-	
-			if get_house_type(property_info.find('dt', {'class': 'listing-type'}).text) == "":
-				self.house_type = ""
-				print("houst_type missing:", property_info.find('dt', {'class': 'listing-type'}))
-
-				self.missing_value = True
-
-			else:
-				self.house_type = get_house_type(property_info.find('dt', {'class': 'listing-type'}).text)
-
-		'''
-		if unit_info != None:
-			print("this is multiple units")
-			#print(unit_info.find("td", {"class":"grouped-result-price"}))
+			# Use extract_numbers to extract numerical value from various different formats
 			self.price = extract_numbers(unit_info.find("td", {"class":"grouped-result-price"}).text)
 			self.bedroom = extract_numbers(unit_info.find("td", {"class":"grouped-result-beds"}).text)
 			self.bathroom = extract_numbers(unit_info.find("td", {"class":"grouped-result-baths"}).text)
 			self.size = extract_numbers(unit_info.find("td", {"class":"grouped-result-sqft"}).text)
+		
+		# If there is only a single option:
 		else:
+			# If the tag for price is not present, set missing_value to True
 			if property_info.find('dt', {'class': 'price-large'}) == None:
-				print("price missing")
 				self.missing_value = True
+			# Or the tag might be present without price information
 			elif property_info.find('dt', {'class': 'price-large'}).text == "":
-				print("price missing, tag is present")
 				self.missing_value = True
 			else:
 				self.price = extract_numbers(property_info.find('dt', {'class': 'price-large'}).text)
 
+			# Run the function for setting number of bathroom, number of bedroom and size
 			self.set_beds_baths_sqft(property_info)
 			
-			if property_info.find('span', {'class': 'built-year'}) != None:
-				self.built_year = eval(property_info.find('span', {'class': 'built-year'}).text[9:])
-			else:
-				# This is problematic. Need to change to None later
-				self.built_year = 0
-
-
+		# If any missing values were detected during the above process,
+		# We need to visit the page with details about a single house option
 		if self.missing_value:
-			print("we will run follow_link")
-			self.follow_link(house_article)
-			print("after follow_link, house_type:", self.house_type, "price:", self.price)
+			self.follow_link(self.link)
+			
+		# Dictionary that stores above information as values
+		self.info_dict = {"address": self.address, "price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size, "link": self.link}
 
-		# Need to check back on this
-		#print(self.house_type)
-		self.info_dict = {"address": self.address, "price" : self.price, "house_type": self.house_type, "bedroom": self.bedroom, "bathroom": self.bathroom, "size": self.size}
+
+	def follow_link(self, link):
+		'''
+		If there were any missing values about a house in the initial search page,
+		Follow link towards a more detailed page to extract information
 		
-		self.weighted_score = 0
-
-# This has to be a part of House object
-	def follow_link(self, house_article):
-		link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
+		Input
+		link: link to detailed page that can be acquired from each "article" tag
+		'''
+		# Get a new beautifulsoup object with the new link
 		new_soup = get_soup(link)
 
+		# Find the div tag that stores information about the house type
 		top_facts = new_soup.find("div", {"class": "top-facts"}).find_all("li")
-		for fact in top_facts:
-			if fact.text in HOUSE_TYPE_DICT_2:
-				self.house_type = HOUSE_TYPE_DICT_2[fact.text]
-				#print(house_type)
-			#return
 
+		# There are other information about the house as well, so these lines
+		# Determine whether the information about the house type
+		for fact in top_facts:
+			if fact.text in HOUSE_TYPE_DICT_DETAILED:
+				self.house_type = HOUSE_TYPE_DICT_DETAILED[fact.text]
+
+		# Set house price by finding the appropriate tag
 		self.price = extract_numbers(new_soup.find("div", {"class": "main-row"}).text)
-		#print("within follow_link", self.house_type, self.price)
+
 
 	def set_beds_baths_sqft(self, property_info):
+		'''
+		Set the number of bedrooms, number of bathrooms, and size of a single house
+		'''
+		# First set default value in case the information is not available
 		self.bedroom = 0
 		self.bathroom = 0
 		self.size = 0
 	
+		# If the tag for our target information is present (this is almost always True)
 		if property_info.find('span', {'class': 'beds-baths-sqft'}) != None:
+			
+			# Split the text within the tag. The original text is 
+			# In the following form: "1 bd • 1 ba • 1,000 sqft"
 			beds_baths_sqft = property_info.find('span', {'class': 'beds-baths-sqft'}).text.split(" ")
-			#print(beds_baths_sqft)
+			
+			# Since sometimes a few of the three information are missing from the text,
+			# Save information if the text includes "bds", "bd", "ba" or "sqft"
 			for i in range(len(beds_baths_sqft)):
 				if beds_baths_sqft[i] == "bds" or beds_baths_sqft[i] == "bd":
-					#print("bed detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
+					# Since I splitted the text based on spaces,
+					# The actual number is in the previous element of the list
 					self.bedroom = extract_numbers(beds_baths_sqft[i-1])
 				elif beds_baths_sqft[i] == "ba":
-					#print("bath detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
 					self.bathroom = extract_numbers(beds_baths_sqft[i-1])
 				elif beds_baths_sqft[i] == "sqft":
-					#print("size detected:", beds_baths_sqft[i-1], beds_baths_sqft[i])
 					self.size = extract_numbers(beds_baths_sqft[i-1])
 
+			# 0 number of bedroom is sometimes shown as "Studio"
 			if beds_baths_sqft[0] == "Studio":
 				self.bedroom = 0
 
 
-# I don't think I'm using this dictionary
-NEW_LINK_DICT = {
-"address": ['span', {'itemprop': 'streetAddress'}],
-"latlong": ['meta', {'itemprop': re.compile(r'^(latitude|longitude)$')}],
-"house/listing": [],
-"price": ['dt', {'class': 'price-large'}],
-"bedroom": ['span', {'class': 'beds-baths-sqft'}],
-"bathroom": ['span', {'class': 'beds-baths-sqft'}], # same thing
-"size": ['span', {'class': 'beds-baths-sqft'}], # same thing
-"built_year": ['span', {'class': 'built-year'}],
-"days_on_zillow": ['dt', {'class': 'doz'}],
-}
+# Dictionary used when extracting house type information from a detailed page about a house option
+HOUSE_TYPE_DICT_DETAILED = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Cooperative": "condos/co-ops"}
 
-#self.price = extract_numbers(link_soup.find("div", {"class": "main-row"}).text)
-# house_type isn't working.
-
-#self.house_type = link_soup.find("div", {"class": "top-facts"}).find_all("li")
-
-# Is there a way to use regular expression here for s's?
-
-HOUSE_TYPE_DICT_2 = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Cooperative": "condos/co-ops"}
-
+# Dictionary used to extract house type information from the initial search page
 HOUSE_SEARCH_DICT = {"co-op": "condos/co-ops", "condo": "condos/co-ops", "condos": "condos/co-ops", "apartment": "apartments", "apartments": "apartments", "houses": "houses", "house": "houses"}
 
+# 
 HOUSE_TYPE_DICT = {"houses": "house", "apartments": "apartment_duplex", "condos/co-ops": "condo", "townhomes": "townhouse", "manufactured": "mobile", "lots/land": "land"}
-
-'''
-def get_house_list(zipcode, listing_type, criteria_list):
-    url = create_url(zipcode, listing_type, criteria_list)
-    soup = get_soup(url)
-    house_list = create_house_objects(soup)
-    new_house_list = create_array(house_list, criteria_list, return_list=True)
-    return new_house_list
-'''
 
 
 def get_house_type(type_str):
+	'''
+	Extracts house type from the text within the tag that includes relevant info
+	
+	Input
+	type_str: text within the tag
+
+	NOTE: usually type_str is in the form "Apartments for Sale"
+	but there are many exceptions such as "Foreclosure" or "For Sale by Owner"
+	'''
+	# First set a default value in case house type is not identified
     house_type = ""
+
+    # Convert to lowercase letters
     type_str = type_str.lower()
+
+    # Trim the part that includes information about type of listing
     if "for sale" in type_str:
         type_str = type_str.replace("for sale", "").strip()
     elif "for rent" in type_str:
         type_str = type_str.replace("for rent", "").strip()
-    #print(type_str)
-    #print(len(type_str))
+    
+    # If the remaining string includes one of the house types, return the type
     for search_term in HOUSE_SEARCH_DICT:
         if search_term in type_str:
             house_type = HOUSE_SEARCH_DICT[search_term]        
             return house_type
 
+    # If the house type is not identified, the default value "" will be returned
     return house_type
 		
-'''
-def rerun_search(soup, url):
-	print("the function is rerun")
-	house_articles = soup.find_all("article", {"class": "property-listing"})
-	
-	if len(house_articles) == 0:
-		print("search request failed: will rerun the function")
-		new_soup = get_soup(url)
-		return rerun_search(soup)	
-
-	return house_articles
-'''
-
-# map-result-count-message. div. whether h2 is present within this or not.
 
 def create_house_objects(soup, url):
 	'''
-	many codes repeated with get_house_info, but we'll deal with this later
-	'''
+	With the given search url for Zillow, create a House object for each result
+	and return the list of House objects
 
+	Input
+	url: zillow search url created with create_url function and user inputs
+	soup: beautifulsoup object created by the url
+	'''
+	# When creating multiple soup objects for several pages, Zillow sometimes
+	# Blocks excessive queries and sends the soup of a blank page instead.
+	# These two lines constantly tries get_soup until the soup contains info
 	while soup.find("article", {"class": "property-listing"}) == None:
-		print("############soup is a blank page, will make another soup")
 		soup = get_soup(url)
 
+	# soup_list is a list of soups to use. This is necessary because
+	# Several initial search pages must be visited for results over 30
 	soup_list = [soup]
+
+	# If the bottom part of zillow's search results column has the "next" button,
+	# Append additional soups from next pages to the soup_list
 	if soup.find("li", {"class": "zsg-pagination-next"}) != None:
 		soup_list += find_additional_links(soup, [])
-	print("soup_list length", len(soup_list))
+
+	#print("soup_list length", len(soup_list))
 	#print(len(soup_list))
+	
+	# Create a list to store the "article" tags for each house
 	house_articles_list = []
+	
 	soup_count = 0
 	for eachsoup in soup_list:
 
 		soup_count += 1
-		
-		#print(type(eachsoup))
 		house_articles = eachsoup.find_all("article", {"class": "property-listing"})
 
 		# Need to distinguish cases in which there actually is no search result and there is		
@@ -247,18 +231,16 @@ def create_house_objects(soup, url):
 			house_articles = rerun_search(eachsoup, url)
 
 		similar_house_articles = eachsoup.find_all("article", {"class": "relaxed-result"})
-		#print(type(house_articles)()
-		#print(len(similar_house_articles))
+
 		for similar_house in similar_house_articles:
 			house_articles.remove(similar_house)
 		print("soup_count:", soup_count, "num of articles:", len(house_articles))
-		#print("after subtracting", len(house_articles))
+
 		house_articles_list += house_articles	
 		print("soup_count:", soup_count, "after adding:", len(house_articles_list))
-	#print(len(house_articles_list))
-	#print(house_articles_list)
+
 	house_list = []
-	#print(len(house_articles))
+
 	article_count = 0
 	for house_article in house_articles_list:
 		article_count += 1	
@@ -268,7 +250,7 @@ def create_house_objects(soup, url):
 			temp_address = "No"
 		print("article_count:", article_count, temp_address)
 		if "grouped" in house_article["class"]:
-			#house_list += get_multiple_units(house_article)
+
 			unit_list = house_article.find("div", {"class": "unit-list"}).find_all("tr")
 			for unit_tr in unit_list:
 				house_list.append(House(house_article, unit_tr))
@@ -401,59 +383,15 @@ def create_url(zipcode, listing_type, criteria_list):
 
 	return base_url
 
-'''
-def create_url_alt(zipcode, listing_type = "", price_range = (0, 0), min_bedroom = 0, min_bathroom = 0, house_types = [], size_range = (0, 0)):
-	
-	zipcode: zipcode
-	For listing_type and house_type the following are the options(put in as string)
-	listing_type: sale, rent, potential listings, recently sold
-	house_type: houses, apartments, condos/co-ops, townhomes, manufactured, lots/land
-	-> for the url: house,apartment_duplex,condo,townhouse,mobile,land + need to add "_type"
-	
-	base_url = "http://www.zillow.com/homes/"
-	end_url = ""
-
-	if listing_type in ["", "sale"]:
-		base_url += "for_sale/"
-		end_url = "0_mmm/"
-	else:
-		base_url += "for_rent/"
-
-	# Would hardcoding in Chicago and IL be okay?
-	base_url += "Chicago-IL-" + str(zipcode) + "/"
-
-	# Do we need to check if min_price is smaller?
-	if not (price_range[0] == 0 and price_range[1] == 0):
-		if listing_type in ["", "sale"]:
-			base_url += str(price_range[0]) + "-" + str(price_range[1]) + "_price/"
-		else:
-			base_url += str(price_range[0]) + "-" + str(price_range[1]) + "_mp/"
-
-	if min_bedroom > 0 and min_bedroom < 7:
-		base_url += str(min_bedroom) + "-_beds/"
-	if min_bathroom > 0 and min_bathroom < 7:
-		base_url += str(min_bathroom) + "-_baths/" 
-
-	if not (size_range[0] == 0 and size_range[1] == 0):
-		base_url += str(size_range[0]) + "-" + str(size_range[1]) + "_size/"		
-
-	if len(house_types) > 0:
-		addition_list = []
-		for house_type in house_types:
-			addition_list.append(HOUSE_TYPE_DICT[house_type])
-		addition = ",".join(addition_list)
-		base_url += addition + "_type"
-
-	# need to work with listing_type
-	base_url += end_url
-
-	return base_url
-'''
 
 def get_soup(url):
-	print("get_soup is successfully run")
+	'''
+	Returns a beautifulsoup object of an html document associated with the url
+	'''
 	response = urllib.request.urlopen(url)
+	# Decodes the response object to a string
 	str_response = response.readall().decode('utf-8')
+	# Use lxml parser for getting the beautifulsoup object
 	return bs4.BeautifulSoup(str_response, "lxml")
 
 

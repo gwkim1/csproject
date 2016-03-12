@@ -57,14 +57,39 @@ a list of tuples with each tuple being like (rank, house address, score, House o
 
 Need to change the same of the arguments so that they are intuitive
 '''
+
+CRITERION_DICT = {0: "price", 1: "house_type", 2: "bathroom", 3: "bedroom", 4: "restaurants", 5: "active life" , 6: "arts and entertainment", 7: "schools/education", 8: "health establishments", 9: "nightlife", 10: "shopping outlets", 11: "violent crime", 12: "property crime", 13: "other victimed non-violent crime", 14: "quality of life crime"}
+
 def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, database_pref, Yelp_pref):
     ypchicago_scores = np.array(ypchicago_scores)
     zillow_scores = get_zillow_scores(house_list, criteria_list)
     array_list = [zillow_scores, ypchicago_scores]
     weight_list = zillow_pref + database_pref + Yelp_pref
+
+
     new_array = concatenate_arrays(array_list)
     weighted_array = get_weighted_score(new_array, weight_list)
+
+    print("weight_list:", weight_list)
+    users_pref = [0] * len(weight_list)
+    for i in range(len(weight_list)):
+        if weight_list[i] == 0:
+            users_pref[i] = 1
+
+    score_per_criterion = []
+    for i in range(len(users_pref)):
+        if users_pref[i] != 1:
+            score_list = []
+            for house_scores in new_array:
+                score_list.append(house_scores[i])
+            score_per_criterion.append({CRITERION_DICT[i]: score_list})
+            
     show_ranking(weighted_array, house_list)
+
+    return score_per_criterion
+
+
+
 
 
 def get_zillow_scores(house_list, criteria_list):
