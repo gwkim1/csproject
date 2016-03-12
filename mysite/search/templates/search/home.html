@@ -9,6 +9,7 @@ body {
 }
 </style>
 </head>
+
 <title> main page </title>
 <p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
 <ul>
@@ -16,6 +17,7 @@ body {
   <li> {{ error }} </li>
   {% endfor %}
 </ul>
+
 
 <form method="post" action="{% url 'results' %}">
 	{% csrf_token %}

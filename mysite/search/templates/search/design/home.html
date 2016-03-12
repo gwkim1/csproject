@@ -1,0 +1,133 @@
+<html>
+  <head>
+    <title>Elements - Spatial by TEMPLATED</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <!--[if lte IE 8]><script src="js/html5shiv.js"></script><![endif]-->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/skel.min.js"></script>
+    <script src="js/skel-layers.min.js"></script>
+    <script src="js/init.js"></script>
+    <noscript>
+      <link rel="stylesheet" href="css/skel.css" />
+      <link rel="stylesheet" href="css/style.css" />
+      <link rel="stylesheet" href="css/style-xlarge.css" />
+    </noscript>
+  </head>
+  <body>
+
+    <section>
+      <h3>Form asdfsadfsa</h3>
+        {% csrf_token %}
+        <label for="location">Zipcode: </label>
+        <input id="location" type="number" name="location" value="{{ current_loc }}">
+        <br>
+        <label for="house_type1"> 1st preference: </label>
+        <select name="house_type1">
+          <option id="house_type1" name="house_type1" value="houses" selected>House</option>
+          <option id="house_type1" name="house_type1" value="apartments">Apartment</option>
+          <option id="house_type1" name="house_type1" value="condos/co-ops">Condo/Co-op</option>
+        </select>
+        <br>
+      </form>
+    </section>
+
+
+
+    <title> main page </title>
+    <p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
+    <ul>
+      {% for error in errors %}
+      <li> {{ error }} </li>
+      {% endfor %}
+    </ul>
+
+
+    <form method="post" action="{% url 'results' %}">
+    	{% csrf_token %}
+    	<label for="location">Zipcode: </label>
+    	<input id="location" type="number" name="location" value="{{ current_loc }}">
+      <br>
+      <label for="house_type1"> 1st preference: </label>
+      <select name="house_type1">
+        <option id="house_type1" name="house_type1" value="houses" selected>House</option>
+        <option id="house_type1" name="house_type1" value="apartments">Apartment</option>
+        <option id="house_type1" name="house_type1" value="condos/co-ops">Condo/Co-op</option>
+      </select>
+      <br>
+      <label for="house_type2"> 2nd preference: </label>
+      <select name="house_type2">
+        <option id="house_type2" name="house_type2" value="houses">House</option>
+        <option id="house_type2" name="house_type2" value="apartments" selected>Apartment</option>
+        <option id="house_type2" name="house_type2" value="condos/co-ops">Condo/Co-op</option>
+        <option id="house_type2" name="house_type2" value=""></option>
+      </select>
+      <br>
+      <label for="house_type3"> 3rd preference: </label>
+      <select name="house_type3">
+        <option id="house_type3" name="house_type3" value="houses">House</option>
+        <option id="house_type3" name="house_type3" value="apartments">Apartment</option>
+        <option id="house_type3" name="house_type3" value="condos/co-ops" selected>Condo/Co-op</option>
+        <option id="house_type2" name="house_type2" value=""></option>
+      </select>
+      <br>
+      <label for="listing_type3">Are you buying or renting? </label>
+      <select name="listing_type">
+        <option id="listing_type" name="listing_type" value="sale"> Buying </option>
+        <option id="listing_type" name="listing_type" value="rent"> Renting </option>
+      </select>
+      <br><br>
+    	<label for="distance">As a user, how do you define nearby?</label>
+    	<input id="distance" type="number" name="distance" value="{{ current_distance }}">
+      <select name="distance_type">
+        <option id="distance_type" name="distance_type" value="meters"> Meters </option>
+        <option id="distance_type" name="distance_type" value="miles"> Miles </option>
+        
+      </select>
+      <br><br>
+      Price (monthly):
+      <label for="price_lower_limit"> Minimum</label>
+      <input id="price_lower_limit" type="number" name="price_lower_limit" value="{{ current_price_lower_limit }}">
+      <label for="price_upper_limit"> Maximum</label>
+      <input id="price_upper_limit" type="number" name="price_upper_limit" value="{{ current_price_upper_limit }}">
+      <br>
+      Number of bathrooms:
+      <label for "min_bathroom"> Minimum </label>
+      <input id="min_bathroom" type="number" name="min_bathroom" value="{{ current_min_bathroom }}">
+      <label for "max_bathroom"> Maximum </label>
+      <input id="max_bathroom" type="number" name="max_bathroom" value="{{ current_max_bathroom }}">
+      <br>
+      Number of bedrooms:
+      <label for "min_bedroom"> Minimum</label>
+      <input id="min_bedroom" type="number" name="min_bedroom" value="{{ current_min_bedroom }}">
+      <label for "max_bedroom"> Maximum</label>
+      <input id="max_bedroom" type="number" name="max_bedroom" value="{{ current_max_bedroom }}">
+      <br><br>
+      Select how much you care about the following:
+      <ul>
+        {% for question in survey %}
+        <li>{{ question.0 }}</li><br>
+        <div class="4u 12u$(xsmall)">
+          <input type="radio" id="not-at-all" name="pref_{{ question.1 }}" value="0" checked>
+          <label for="Not at all">Not at all</label>
+        </div>
+        <div class="4u 12u$(xsmall)">
+          <input type="radio" id="priority-low" name="pref_{{ question.1 }}" checked>
+          <label for="priority-low">Low Priority</label>
+        </div>
+        <input type="radio" name="pref_{{ question.1 }}" value="0" checked="checked"> Not at all
+        <input type="radio" name="pref_{{ question.1 }}" value="0.25"> A little
+        <input type="radio" name="pref_{{ question.1 }}" value="0.5"> Neutral
+        <input type="radio" name="pref_{{ question.1 }}" value="0.75"> Important
+        <input type="radio" name="pref_{{ question.1 }}" value="1"> Very important<br><br>
+        {% endfor %}
+      </ul>  
+      <label for"date"> For crime data, select a starting date, in YYYY-MM-DD format (Warning, Dates earlier than 2015-01-01 will take a long time) </label>
+      <input id="date" name="date", value="{{ current_date }}"><br>
+      <input type="submit" value="Search">
+    </form>
+
+
+  </body>
+</html>
