@@ -2,20 +2,6 @@ import numpy as np
 import zillow
 
 '''
-Ideas for improvement:
-1. May change the way of calculating the preferences if the result is not satisfactory for the user
-2. 
-
-
-What hasn't been done yet:
-1. tiebreaking?
-2. get_house_list doesn't work(because of create_array) and is too slow
-'''
-
-
-
-
-'''
 PEDRO AND RYAN: use get_house_list to get a list of houses that meets the criteria in zillow
 3/8 NOTE: the format of criteria_list has changed. nothing too different. I just deleted ideal_value and weight because we don't need this in my function
 

@@ -7,7 +7,7 @@ import re
 
 
 # Dictionary used when extracting house type information from a detailed page about a house option
-HOUSE_TYPE_DICT_DETAILED = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Cooperative": "condos/co-ops"}
+HOUSE_TYPE_DICT_DETAILED = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Apartment": "apartments", "Cooperative": "condos/co-ops"}
 
 # Dictionary used to extract house type information from the initial search page
 HOUSE_SEARCH_DICT = {"co-op": "condos/co-ops", "condo": "condos/co-ops", "condos": "condos/co-ops", "apartment": "apartments", "apartments": "apartments", "houses": "houses", "house": "houses"}
@@ -114,11 +114,22 @@ class House:
         new_soup = get_soup(link)
 
         # Find the div tag that stores information about the house type
-        top_facts = new_soup.find("div", {"class": "top-facts"}).find_all("li")
+        top_facts_list = new_soup.find_all("div", {"class": "top-facts"})
+        #top_facts = new_soup.find("div", {"class": "top-facts"}).find_all("li")
+        if len(top_facts_list) == 1:
+            print("there is only one entry in top_facts_list")
+            top_facts_table = top_facts_list[0]
+        else:
+            for top_facts in top_facts_list:
+                print("h3:", top_facts.find("h3").text)
+                if top_facts.find("h3").text != "Facts":
+                    top_facts_list.remove(top_facts)
+            top_facts_table = top_facts_list[0]
 
         # There are other information about the house as well, so these lines
         # Determine whether the information about the house type
-        for fact in top_facts:
+        for fact in top_facts_table.find_all("li"):
+            print(fact.text)
             if fact.text in HOUSE_TYPE_DICT_DETAILED:
                 self.house_type = HOUSE_TYPE_DICT_DETAILED[fact.text]
 
@@ -312,6 +323,11 @@ def extract_numbers(num_str):
     Output:
     int/float that num_str represents
     '''
+    # There is a case where the string related to number of bedrooms
+    # Is written "Studios". In this one exception, return 0
+    if num_str == "Studios":
+        return 0
+
     # Set a default value
     num = ""
 
