@@ -47,6 +47,12 @@ def homepage(request):
     return render(request, 'search/home.html', c)
 
 
+def error(request):
+    c = {}
+    return render(request, 'search/error.html', c)
+
+
+
 def results(request):
     c={}
 
