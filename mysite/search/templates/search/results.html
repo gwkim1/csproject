@@ -13,9 +13,10 @@ body {
 <title> Results</title>
 
 <h1> Here are your results </h1>
-<p id = "b"></p>
+<p id = "display"></p>
 <ul>
   <!--
+    This is the code we originally used to Display the results and return information using a hidden form
     {% for result in results %}
     <li> 
     <form method="post" action="{% url 'detailed_results'%}">
@@ -44,14 +45,11 @@ body {
       google.charts.load('current', {'packages':['table', 'bar']});
       google.charts.setOnLoadCallback(drawTable);
       google.charts.setOnLoadCallback(drawChart);
-
+      // Draws the table using the google charts table 
       function drawTable() {
 
         var data = new google.visualization.DataTable();
 
-        //var results = "{{ variable_list }}";
-
-        //var len_results = results.length;
         data.addColumn('string', 'house_id');
         data.addColumn('string', 'Address');
         data.addColumn('string', 'Score');
@@ -74,57 +72,37 @@ body {
 
         var table = new google.visualization.Table(document.getElementById('table_div'));
 
-
-
         table.draw(data, {showRowNumber: false, width: '50%', height: '50%'});
 
         google.visualization.events.addListener(table, 'select', selectHandler);
 
 
+// The selection handler: Taken and heavily modified from https://developers.google.com/chart/interactive/docs/events
 
-
-
-
-
-
-
-
-
-
-// The selection handler.
-
-// Loop through all items in the selection and concatenate
-
-// a single message from all of them.
-
-function selectHandler() {
-  var selection = table.getSelection();
-  
-  for (var i = 0; i < selection.length; i++) {
-    var item = selection[i];
-    if (item.row != null) {
-      var str = data.getFormattedValue(item.row, 0);
-      var message = str;
-    }
-    }
-    document.getElementById("b").innerHTML = message;
-    document.getElementById("house_id").value = message;
-}
-
+      function selectHandler() {
+        var selection = table.getSelection();
+        
+        for (var i = 0; i < selection.length; i++) {
+          var item = selection[i];
+          if (item.row != null) {
+            var str = data.getFormattedValue(item.row, 0);
+            var message = str;
+          }
+        }
+        // Changes both the displayed message and the hidden one to the table that was clicked
+        document.getElementById("display").innerHTML = message;
+        document.getElementById("house_id").value = message;
+      }
+// Draws the barcharts using the google charts' barchart
       }
       function drawChart() {
         var data = new google.visualization.DataTable();
-
-        //var results = "{{ variable_list }}";
-
-        //var len_results = results.length;
         data.addColumn('string', 'Address');
         {% for crime_type in database_cat %}
 
         data.addColumn('number', '{{crime_type}}');
 
         {% endfor %}
-
 
         {% for data in bar_data %}
 
@@ -134,17 +112,105 @@ function selectHandler() {
 
         {% endfor %}
 
+
+        var data1 = new google.visualization.DataTable();
+
+        data1.addColumn('string', 'Address');
+        {% for pref_type in zbar_var %}
+
+        data1.addColumn('number', '{{pref_type}}');
+
+        {% endfor %}
+
+
+        {% for data in zbar_data %}
+
+        data1.addRow(
+
+          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}')]);
+
+        {% endfor %}
+
+
+        var data2 = new google.visualization.DataTable();
+
+        data2.addColumn('string', 'Address');
+        {% for pref_type in ybar_var %}
+
+        data2.addColumn('number', '{{pref_type}}');
+
+        {% endfor %}
+
+        {% for data in ybar_data %}
+
+        data2.addRow(
+
+          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}'),parseInt('{{data.5}}'),parseInt('{{data.6}}'),parseInt('{{data.7}}')]);
+
+        {% endfor %}
+
+
+
+
+        var data3 = new google.visualization.DataTable();
+
+        data3.addColumn('string', 'Address');
+        {% for pref_type in cbar_var %}
+
+        data3.addColumn('number', '{{pref_type}}');
+
+        {% endfor %}
+
+
+        {% for data in cbar_data %}
+
+        data3.addRow(
+
+          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}')]);
+
+        {% endfor %}
+
+
+
         var options = {
           chart: {
-            title: 'Company Performance',
-            subtitle: 'Sales, Expenses, and Profit: 2014-2017',
+            title: 'Type of Crimes in Area',
+            subtitle: 'Within '+ '{{current_distance}}'+'m' +' since ' + '{{current_date}}',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+        var options1 = {
+          chart: {
+            title: 'House attribute scores',
+            subtitle: 'Scores based on house attributes',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+        var options2 = {
+          chart: {
+            title: 'Yelp Scores',
+            subtitle: 'Relative scores based on aggregate ratings',
+          },
+          bars: 'horizontal' // Required for Material Bar Charts.
+        };
+        var options3 = {
+          chart: {
+            title: 'Crime Scores',
+            subtitle: 'Relative scores based on number of crimes and number of crimes in larger area',
           },
           bars: 'horizontal' // Required for Material Bar Charts.
         };
 
-        var chart = new google.charts.Bar(document.getElementById('barchart'));
 
+        var chart = new google.charts.Bar(document.getElementById('barchart'));
+        var chart1 = new google.charts.Bar(document.getElementById('zbarchart'));
+        var chart2 = new google.charts.Bar(document.getElementById('ybarchart'));
+        var chart3 = new google.charts.Bar(document.getElementById('cbarchart'));
         chart.draw(data, options);
+        chart1.draw(data1, options1)
+        chart2.draw(data2, options2);
+        chart3.draw(data3, options3)
+
       }
 
     </script>
@@ -154,7 +220,11 @@ function selectHandler() {
   <body>
 
     <div id="table_div"></div>
+    <p>'Scores are 0 if there is no preference '</p>
     <div id="barchart" style="width: 900px; height: 500px;"></div>
+    <div id="zbarchart" style="width: 900px; height: 500px;"></div>
+    <div id="ybarchart" style="width: 900px; height: 500px;"></div>
+    <div id="cbarchart" style="width: 900px; height: 500px;"></div>
 
   </body>
 
