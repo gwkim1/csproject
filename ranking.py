@@ -82,6 +82,7 @@ def get_final_scores(house_list, criteria_list, ypchicago_scores, zillow_pref, c
     '''
     # First convert ypchicago_scores to a numpy array
     ypchicago_scores = np.array(ypchicago_scores)
+    ypchicago_scores *= 100
     # Get a numpy score array for the criteria related to zillow data as well
     zillow_scores = get_zillow_scores(house_list, criteria_list)
     # Concatenate ypchicago_scores array with zillow_scores array
