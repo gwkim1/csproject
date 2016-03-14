@@ -10,7 +10,7 @@ body {
 </style>
 </head>
 
-<title> Main Page </title>
+<title> Home </title>
 <p> <a href="{% url 'home'%}"> start</a> | <a href="{% url 'about'%}"> about </a> </p>
 <ul>
   {% for error in errors %}
@@ -80,8 +80,8 @@ body {
   <input id="max_bedroom" type="number" name="max_bedroom" value="{{ current_max_bedroom }}">
   <br><br>
   Select how much you care about the following:
-  <br>
-  (Warning: Selecting more business categories (e.g. restaurants, shopping, etc.) will significantly increase runtime (max: approx 10 seconds for each business catgory selected))
+  <br><small>
+  (Warning: Selecting more business categories (e.g. restaurants, shopping, etc.) will significantly increase runtime (max: approx 10 seconds for each business catgory selected))</small>
   <ul>
     {% for question in survey %}
     <li>{{ question.0 }}</li><br>
@@ -92,8 +92,12 @@ body {
     <input type="radio" name="pref_{{ question.1 }}" value="1"> Very important<br><br>
     {% endfor %}
   </ul>  
-  <label for"date"> For crime data, select a starting date, in YYYY-MM-DD format (Warning, Dates earlier than 2015-01-01 will take a long time) </label>
+
+  <label for"date"> For crime data, select a starting date, in YYYY-MM-DD format <small>(Warning, Dates earlier than 2015-01-01 will take a long time)</small> </label>
   <input id="date" name="date", value="{{ current_date }}"><br>
+  <small>Notes:<br>
+Studio apartments are considered as having 0 bedroom<br>
+Houses for auction do not have prices and will not be included in scoring<br></small>
   <input type="submit" value="Search">
 </form>
 
