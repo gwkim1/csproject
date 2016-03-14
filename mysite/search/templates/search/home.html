@@ -80,6 +80,8 @@ body {
   <input id="max_bedroom" type="number" name="max_bedroom" value="{{ current_max_bedroom }}">
   <br><br>
   Select how much you care about the following:
+  <br>
+  (Warning: Selecting more business categories (e.g. restaurants, shopping, etc.) will significantly increase runtime (max: approx 10 seconds for each business catgory selected))
   <ul>
     {% for question in survey %}
     <li>{{ question.0 }}</li><br>

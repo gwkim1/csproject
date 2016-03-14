@@ -63,7 +63,14 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=
 
 def get_score(locations, category_filter, radius):
   location_raw_scores = []
+  if len(locations) > 10:
+    print(category_filter, "scores will take too long to generate with 10+ properties")
+    return [0]*len(locations)
   for location in locations:
+    '''
+    This is the code we used initially to obtain all the Yelp results, but we found that it took too much time
+    Instead we changed it so that it only returns the top 20 results with the best ratings
+    Also we limited the properties to a max of 10, so the function would not timeout
     # Yelp only gives 20 results maximum per request, so it must be offset to get all of the results
     count, results = search(location, category_filter = category_filter, count = True, radius = radius)
     if count == 0:
@@ -82,12 +89,17 @@ def get_score(locations, category_filter, radius):
       for result in results:
         score += result["rating"]
     location_raw_scores.append(score)
-
+    '''
+    print("Searching", location, "for", category_filter)
+    count, results = search(location, category_filter = category_filter, radius = radius,count = True, sort=2)
+    score = 0
+    if count > 0:
+      for result in results:
+        score += result["rating"]
+    location_raw_scores.append(score)
   # Reduces the max score down to 1, and calculates other score relative to the max
-  max_score = 0
-  for score in location_raw_scores:
-    if score > max_score:
-      max_score = score
+  print("Reducing scores")
+  max_score = max(location_raw_scores)
   if max_score == 0:
     new_scores = [0]*len(location_raw_scores)
   else:
@@ -139,7 +151,7 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
   # Calls the yelp api to get all of the results and returns the results the variable we are interested in 
   lat = location[0]
   long = location[1]
-  params = get_search_parameters(lat, long, term, radius, limit, category_filter, offset = offset)
+  params = get_search_parameters(lat, long, term, radius, limit, category_filter, offset = offset, sort = sort)
   api_call = get_results(params)
   # If there are no businesses, or there is an error retrun an empty list
   if "businesses" not in api_call.keys():

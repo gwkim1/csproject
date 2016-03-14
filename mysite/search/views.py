@@ -22,6 +22,8 @@ HOUSE_PATH="search/templates/search/house_info"
 PREF_OPTIONS_DICT = {"zillow": ["price", "house_type","bathroom","bedroom"],
     "yelp":["restaurants", "active life" , "arts and entertainment",  "schools/education",  "health establishments",  "nightlife",  "shopping outlets"],
      "crime":["violent crime",  "property crime", "other victimed non-violent crime",  "quality of life crime"]}
+YELP_DICT = {"restaurants": 0, "active life":1 , "arts and entertainment":2,  "schools/education":3,  
+"health establishments": 4,  "nightlife": 5,  "shopping outlets":6}
 def about(request):
     c={'names': 'Pedro, Eric, Ryan,'}
     return render(request, 'search/about.html', c)
@@ -187,6 +189,7 @@ def results(request):
     scores=[]
 
     # Stores the scores gotten from yelp
+    print("requesting Yelp")
     Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
     # Stores the results gotten from database
     database_results=sql_stuff.search(date, list_of_house_coords, distance, "search.db")
@@ -217,26 +220,51 @@ def results(request):
         total_scores.append(Yelp_results[i]+database_scores[i])
     # Passes the houses, user input, scores, and preferences into ranking to get the final scores 
     # Also sets the scores of each house object
-    scores_dict = ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
+    raw_scores_dict = ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
+    #print(raw_scores_dict)
+    scores_dict = {}
+    top_ten_address = []
+    for pref in raw_scores_dict:
+        scores_list = []
+        for tup in raw_scores_dict[pref]:
+            if pref not in list(scores_dict.keys()):
+                scores_dict[pref] = [tup[1]]
+            else:
+                scores_dict[pref].append(tup[1])
+            if tup[2] not in top_ten_address:
+                top_ten_address.append(tup[2])
     scores = {"zillow":{}, "yelp":{},"crime":{}}
     # Divides the scores in scores_dict into 3 categories: zillow, yelp, crime
     for key in scores_dict:
         for pref in PREF_OPTIONS_DICT:
             if key in PREF_OPTIONS_DICT[pref]:
                 scores[pref][key] = (scores_dict[key])
+
     # Changes the data in scores into Address, value, value, value form to use in the bar chart
     # Also stores the variable names
+    if len(house_list) > 10:
+        list_top_coords = []
+        for address in top_ten_address:
+            for house in house_list:
+                if address == house.address:
+                    list_top_coords.append((house.lat, house.long))
+    
+        top_Yelp_results=Yelp.get_yelp_scores(list_top_coords,distance,Yelp_pref)
+
     bar_data_dict = {"zillow":[[]], "yelp":[[]],"crime":[[]]}
     for key in scores:
         variable_list = PREF_OPTIONS_DICT[key]
-        for i in range(len(house_list)):
+        for i in range(len(top_ten_address)):
             value_list = []
             for variable in PREF_OPTIONS_DICT[key]:
                 if variable in scores[key]:
-                    value_list.append(scores[key][variable][i])
+                    if len(house_list) > 10 and key == "yelp":
+                        value_list.append(math.ceil(top_Yelp_results[i][YELP_DICT[variable]]*100))
+                    else:
+                        value_list.append(scores[key][variable][i])
                 else:
                     value_list.append(0)
-            bar_data_dict[key][0].append([house_list[i].address] + value_list)
+            bar_data_dict[key][0].append([top_ten_address[i]] + value_list)
         bar_data_dict[key].append(variable_list)
 
     
@@ -287,7 +315,8 @@ def results(request):
             t_labels.sort()
             t=range(len(t_labels))
             s=[all_crimes[j][k] for k in t_labels]
-            bar_data.append((i.address, j, sum(s)))
+            if len(bar_data) <= 10:
+                bar_data.append((i.address, j, sum(s)))
     bar_dict = {}
     for i in bar_data:
         if i[0] not in bar_dict:
