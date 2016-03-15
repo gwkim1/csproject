@@ -251,8 +251,8 @@ def get_weighted_score(score_array, weight_list):
     # If the user did not specify any preferences and the weight_list only has 0s,
     # Assume that the user treates each preference equally
     if total_weight == 0:
-        weight_array = np.array([1 / len(weight_list) for i in range(len(weight_list))])
+        weight_array = np.array([[1 / len(weight_list)] for i in range(len(weight_list))])
     else:
-        weight_array = np.array([[weight_list[i]/total_weight] for i in range(len(weight_list))])
+        weight_array = np.array([[weight_list[i] / total_weight] for i in range(len(weight_list))])
     # Conduct matrix calculation to apply the weights to the scores
     return np.dot(score_array, weight_array)
