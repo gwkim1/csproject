@@ -72,20 +72,24 @@ def get_score(locations, category_filter, radius):
     return [0]*len(locations)
   for location in locations:
     '''
-    This is the code we used initially to obtain all the Yelp results, but we found that it took too much time
+    This is the code we used initially to obtain all the Yelp results, 
+    but we found that it took too much time
     Instead we changed it so that it only returns the top 20 results with the best ratings
     Also we limited the properties to a max of 10, so the function would not timeout
     # Yelp only gives 20 results maximum per request, so it must be offset to get all of the results
-    count, results = search(location, category_filter = category_filter, count = True, radius = radius)
+    count, results = search(location, category_filter = category_filter,
+     count = True, radius = radius)
     if count == 0:
       score = 0 
     else:
       if count > 20:
-        # Makes additional requests to get 20 results at a time until all the results are appended
+        # Makes additional requests to get 20 results at 
+        # a time until all the results are appended
         iterations = math.ceil(count/20)-1
         offset = 20
         for i in range(iterations):
-          additional_result = search(location, category_filter = category_filter, offset = offset, radius = radius)
+          additional_result = search(location, category_filter = category_filter, 
+            offset = offset, radius = radius)
           offset+=20
           results+=additional_result
       score = 0
@@ -95,7 +99,8 @@ def get_score(locations, category_filter, radius):
     location_raw_scores.append(score)
     '''
     print("Searching", location, "for", category_filter)
-    count, results = search(location, category_filter = category_filter, radius = radius,count = True, sort=2)
+    count, results = search(location, category_filter = category_filter,
+     radius = radius,count = True, sort=2)
     score = 0
     if count > 0:
       for result in results:
@@ -126,7 +131,8 @@ def get_yelp_scores(locations, distance, preferences):
 
 def yelp_search(location, distance, term, category_filter = "", sort = 0, offset = 0):
   # Returns list in order of name, distance, rating, # of reviews, location, letter
-  results = search(location, term = term, radius = distance, category_filter = category_filter, sort = sort, offset=offset)
+  results = search(location, term = term, radius = distance,
+   category_filter = category_filter, sort = sort, offset=offset)
   result_list = []
   # If empty, return an empty list and count of 0
   if results == []:
@@ -147,15 +153,18 @@ def dict_to_list(dictionary, letter):
   for i in dictionary["categories"]:
     categories += i[0]+" "
   output = [dictionary["name"], dictionary["distance"], dictionary["rating"],
-   dictionary["review_count"], dictionary["location"]["latitude"], dictionary["location"]["longitude"], letter.upper()]
+   dictionary["review_count"], dictionary["location"]["latitude"],
+    dictionary["location"]["longitude"], letter.upper()]
   return output
 
 
-def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_filter = "", offset = 0, sort = 0, count = False):
+def search(location, term = "", radius = WALKING_DISTANCE,
+ limit = 20, category_filter = "", offset = 0, sort = 0, count = False):
   # Calls the yelp api to get all of the results and returns the results the variable we are interested in 
   lat = location[0]
   long = location[1]
-  params = get_search_parameters(lat, long, term, radius, limit, category_filter, offset = offset, sort = sort)
+  params = get_search_parameters(lat, long, term, radius,
+   limit, category_filter, offset = offset, sort = sort)
   api_call = get_results(params)
   # If there are no businesses, or there is an error retrun an empty list
   if "businesses" not in api_call.keys():
