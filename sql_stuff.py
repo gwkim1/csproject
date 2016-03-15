@@ -7,11 +7,11 @@ import re
 ordered_columns={"crimes":
                           ["date", "code", "latitude", "longitude"],
                  "IUCR_codes":
-                          ["code", "primary_type", "secondary_type"],
-                 "bike_racks":
-                          ["number", "latitude", "longitude"],
-                 "fire_police":
-                          ["address", "latitude", "longitude", "type"]
+                          ["code", "primary_type", "secondary_type"]#,
+                 #"bike_racks":
+                 #         ["number", "latitude", "longitude"],
+                 #"fire_police":
+                 #         ["address", "latitude", "longitude", "type"]
                 }
 
 sql_datatypes={"crimes":
@@ -19,24 +19,24 @@ sql_datatypes={"crimes":
                          "latitude": "real", "longitude": "real"},
                "IUCR_codes":
                         {"code":"varchar(4)", "primary_type":"text",
-                         "secondary_type": "text"},
-               "bike_racks":
-                        {"number": "integer", "latitude":"real",
-                         "longitude":"real"},
-               "fire_police":
-                        {"address": "text", "latitude": "real",
-                         "longitude": "real", "type": "varchar(1)"}
+                         "secondary_type": "text"}#,
+               #"bike_racks":
+               #         {"number": "integer", "latitude":"real",
+               #          "longitude":"real"},
+               #"fire_police":
+               #         {"address": "text", "latitude": "real",
+               #          "longitude": "real", "type": "varchar(1)"}
                }
 
 LABELED_FILENAMES={"crimes":
                             ["crimes_2013.csv","crimes_2014.csv",
                             "crimes_2015.csv","crimes_2016.csv"],
                    "IUCR_codes":
-                            ["IUCR_codes.csv"],
-                   "bike_racks":
-                            ["bike_racks.csv", "divvy_stations.csv"],
-                   "fire_police":
-                            ["fire_stations.csv", "police_stations.csv"]
+                            ["IUCR_codes.csv"]#,
+                   #"bike_racks":
+                   #         ["bike_racks.csv", "divvy_stations.csv"],
+                   #"fire_police":
+                   #         ["fire_stations.csv", "police_stations.csv"]
                 }
 
 test_coordinates={"me": (41.783213,-87.601375), 
@@ -56,19 +56,19 @@ sql_strings={"crimes":
                        2: '''SELECT count(*) FROM crimes JOIN IUCR_codes
                        ON IUCR_codes.code=crimes.code WHERE 
                        strftime('%s',date)>=strftime('%s', {}) AND 
-                       primary_type IN {};'''},
-             "bike_racks":
-                      {1: '''SELECT number, latitude, longitude FROM 
-                      bike_racks WHERE 
-                      distance({},{}, latitude, longitude)<={}''',
-
-                       2: '''SELECT number FROM bike_racks'''},
-             "fire_police":
-                      {1: '''SELECT address, latitude, longitude 
-                      FROM fire_police WHERE 
-                      distance({},{}, latitude, longitude)<={} AND type={}''',
-
-                       2: '''SELECT count(*) FROM fire_police WHERE type={}'''}
+                       primary_type IN {};'''}#,
+             #"bike_racks":
+             #         {1: '''SELECT number, latitude, longitude FROM 
+             #         bike_racks WHERE 
+             #         distance({},{}, latitude, longitude)<={}''',
+             #
+             #          2: '''SELECT number FROM bike_racks'''},
+             #"fire_police":
+             #         {1: '''SELECT address, latitude, longitude 
+             #         FROM fire_police WHERE 
+             #         distance({},{}, latitude, longitude)<={} AND type={}''',
+             #
+             #         2: '''SELECT count(*) FROM fire_police WHERE type={}'''}
             }
 
 CRIME_TYPES={"Violent":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'",
@@ -329,7 +329,7 @@ def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
             
 
     
-''' No longer used, took a long time
+''' No longer used, was very inefficient
 
 
 def crime_search(time, list_of_houses, distance, prop_area, cursor):

@@ -17,7 +17,7 @@ def change_date_column(n, filename):
 		#If PM and Hour!=12, Hour+=12
 		for row in readerf:
 			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})",row[n])
-			MM,DD,YYYY,HH,mm,SS,meridiem=date_search.group(1),date_search.group(2),date_search.group(3),
+			MM,DD,YYYY,HH,mm,SS,meridiem=date_search.group(1),date_search.group(2),date_search.group(3),\
 			date_search.group(4),date_search.group(5),date_search.group(6),date_search.group(7)
 			if meridiem=="PM" and HH!="12":
 				int_hour=int(HH)
@@ -150,9 +150,9 @@ def check_codes(filename, code_col, prim_col, sec_col):
 		count=1
 		for row in readerf:
 			if row[code_col].strip()!="5114":
-			    assert d[row[code_col].strip()]==(row[prim_col].strip(), row[sec_col].strip()),
-			     "code {} in row {} is {},{} in crime file but {},{} in IUCR codes".
-			     format( row[code_col].strip() , count+1, row[prim_col].strip(), row[sec_col].strip(),
+			    assert d[row[code_col].strip()]==(row[prim_col].strip(), row[sec_col].strip()),\
+			     "code {} in row {} is {},{} in crime file but {},{} in IUCR codes".\
+			     format( row[code_col].strip() , count+1, row[prim_col].strip(), row[sec_col].strip(),\
 			     d[row[code_col].strip()][0] ,d[row[code_col].strip()][1])
 			else:
 				primary_types=["NON-CRIMINAL", "NON - CRIMINAL"]
@@ -231,14 +231,20 @@ def clean_crime_csv(filename):
 	prim_col=header.index("Primary Type")
 	sec_col=header.index("Description")
 	date_col=header.index("Date")
-
+	print("Checking if valid csv file...")
 	check_columns(filename)
+	print("Making all IUCR codes 4 character strings...")
 	fix_codes(code_col, filename)
-	check_codes(filename, code_col, prim_col, sec_col)
+	print("Adding missing codes to IUCR_codes.csv...")
 	add_crime_codes(filename, code_col, prim_col, sec_col)
+	print("Checking for inconsistencies between IUCR_codes.csv and crime file...")
+	check_codes(filename, code_col, prim_col, sec_col)
+	print("Changing the date column to YYYY-MM-DD...")
 	change_date_column(date_col, filename)
+	print("Removing rows with missing data...")
 	remove_entries_with_empty_fields(filename)
 	cols_to_remove=[j for j in header if j not in keep_these_columns]
+	print("Removing unecessary columns...")
 	remove_columns(filename, cols_to_remove)
 
 if __name__=="__main__":
