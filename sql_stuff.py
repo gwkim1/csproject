@@ -189,7 +189,8 @@ def search(time, list_of_houses, distance, database_name):
     Returns a list of dictionaries, each of which represents the house information (in the order they came in), with keys as a category
     (e.g. Violent crime, Property crime, bike_racks), and values as (results, score), where results is a list of sql tuple results, and score is a score from 0 to 1 on that category
 
-    Sample use: search("2014-01-01", [(41.783213,-87.601375), (41.973047, -87.777324)], 1000, some_db.db)'''
+    Sample use: search("2014-01-01", [(41.783213,-87.601375), (41.973047, -87.777324)], 1000, some_db.db)
+    '''
 
 
     prop_area=pi*distance**2/CHICAGO_AREA
