@@ -46,7 +46,7 @@ sql_stuff.py is called whenever the website performs a search, but it is possibl
 
 To get the data and clean it, do the following:
 
-0) Remove everything from csproject/chicago_data/Clean
+0) Remove any crime files and IUCR_codes.csv from csproject/chicago_data/Clean
 1) Download csv exports of the crime datasets from the city of chicago data portal for any number of years (as many as you want)
 example dataset: https://data.cityofchicago.org/Public-Safety/Crimes-2015/vwwp-7yr9 (only 2015). Also download https://data.cityofchicago.org/Public-Safety/Chicago-Police-Department-Illinois-Uniform-Crime-R/c7ck-438e, and call it IUCR_codes.csv
 2) Move the files to csproject/chicago_data/Clean
