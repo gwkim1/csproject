@@ -15,17 +15,22 @@ ordered_columns={"crimes":
                 }
 
 sql_datatypes={"crimes":
-                        {"date":"text", "code": "varchar(4)", "latitude": "real", "longitude": "real"},
+                        {"date":"text", "code": "varchar(4)",
+                         "latitude": "real", "longitude": "real"},
                "IUCR_codes":
-                        {"code":"varchar(4)", "primary_type":"text", "secondary_type": "text"},
+                        {"code":"varchar(4)", "primary_type":"text",
+                         "secondary_type": "text"},
                "bike_racks":
-                        {"number": "integer", "latitude":"real", "longitude":"real"},
+                        {"number": "integer", "latitude":"real",
+                         "longitude":"real"},
                "fire_police":
-                        {"address": "text", "latitude": "real", "longitude": "real", "type": "varchar(1)"}
+                        {"address": "text", "latitude": "real",
+                         "longitude": "real", "type": "varchar(1)"}
                }
 
 LABELED_FILENAMES={"crimes":
-                            ["crimes_2013.csv","crimes_2014.csv","crimes_2015.csv","crimes_2016.csv"],
+                            ["crimes_2013.csv","crimes_2014.csv",
+                            "crimes_2015.csv","crimes_2016.csv"],
                    "IUCR_codes":
                             ["IUCR_codes.csv"],
                    "bike_racks":
@@ -34,30 +39,53 @@ LABELED_FILENAMES={"crimes":
                             ["fire_stations.csv", "police_stations.csv"]
                 }
 
-test_coordinates={"me": (41.783213,-87.601375), "low crime": (41.973047, -87.777324),
-                  "middle_of_nowhere": (41.767393, -87.751276), "high_crime": (41.877388, -87.730634)}
+test_coordinates={"me": (41.783213,-87.601375), 
+                  "low crime": (41.973047, -87.777324),
+                  "middle_of_nowhere": (41.767393, -87.751276), 
+                  "high_crime": (41.877388, -87.730634)}
 
+###used unix timestamps to calculate time given a YYYY-MM-DD format using sql
 sql_strings={"crimes":
-                      {1: '''SELECT date, primary_type, secondary_type, latitude, longitude FROM IUCR_codes JOIN crimes 
-                             ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) #this uses unix timestamps
-                             AND distance({},{}, latitude, longitude)<={} AND primary_type IN {};''',
+                      {1: '''SELECT date, primary_type, secondary_type,
+                       latitude, longitude FROM IUCR_codes JOIN crimes 
+                       ON IUCR_codes.code=crimes.code WHERE
+                       strftime('%s', date)>=strftime('%s', {})
+                       AND distance({},{}, latitude, longitude)<={} 
+                       AND primary_type IN {};''',
 
-                       2: '''SELECT count(*) FROM crimes JOIN IUCR_codes ON IUCR_codes.code=crimes.code WHERE strftime('%s',date)>=strftime('%s', {}) AND primary_type IN {};'''},
+                       2: '''SELECT count(*) FROM crimes JOIN IUCR_codes
+                       ON IUCR_codes.code=crimes.code WHERE 
+                       strftime('%s',date)>=strftime('%s', {}) AND 
+                       primary_type IN {};'''},
              "bike_racks":
-                      {1: '''SELECT number, latitude, longitude FROM bike_racks WHERE distance({},{}, latitude, longitude)<={}''',
+                      {1: '''SELECT number, latitude, longitude FROM 
+                      bike_racks WHERE 
+                      distance({},{}, latitude, longitude)<={}''',
 
                        2: '''SELECT number FROM bike_racks'''},
              "fire_police":
-                      {1: '''SELECT address, latitude, longitude FROM fire_police WHERE distance({},{}, latitude, longitude)<={} AND type={}''',
+                      {1: '''SELECT address, latitude, longitude 
+                      FROM fire_police WHERE 
+                      distance({},{}, latitude, longitude)<={} AND type={}''',
 
                        2: '''SELECT count(*) FROM fire_police WHERE type={}'''}
             }
 
-CRIME_TYPES={"Violent":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'", "'HOMICIDE'", "'KIDNAPPING'", "'SEX OFFENSE'", "'INTIMIDATION'", "'WEAPONS VIOLATION'", '"OFFENSE INVOLVING CHILDREN"'],
-            "Property":['"ARSON"', '"BURGLARY"', '"CRIMINAL DAMAGE"', '"MOTOR VEHICLE THEFT"', '"ROBBERY"'],
-            "Other":['"CRIMINAL TRESSPASS"','"CRIMINAL ABORTION"', '"STALKING"',  '"OTHER OFFENSE"', '"RITUALISM"'],
-            "QoL": ['"INTERFERENCE WITH PUBLIC OFFICER"','"DECEPTIVE PRACTIVE"', '"GAMBLING"', '"LIQUOR LAW VIOLATION"', '"OBSCENITY"' '"HUMAN TRAFFICKING"', '"PROSTITUTION"',
-                                       '"PUBLIC INDECENCY"', '"PUBLIC PEACE VIOLATION"', '"NARCOTICS"', '"OTHER NARCOTIC VIOLATION"','"CONCEALED CARRY LICENSE VIOLATION"']
+CRIME_TYPES={"Violent":['"ASSAULT"', "'BATTERY'", "'CRIM SEXUAL ASSAULT'",
+                        "'HOMICIDE'", "'KIDNAPPING'", "'SEX OFFENSE'", 
+                        "'INTIMIDATION'", "'WEAPONS VIOLATION'", 
+                        '"OFFENSE INVOLVING CHILDREN"'],
+            "Property":['"ARSON"', '"BURGLARY"', '"CRIMINAL DAMAGE"', 
+                        '"MOTOR VEHICLE THEFT"', '"ROBBERY"'],
+            "Other":['"CRIMINAL TRESSPASS"','"CRIMINAL ABORTION"', 
+                    '"STALKING"',  '"OTHER OFFENSE"', '"RITUALISM"'],
+            "QoL": ['"INTERFERENCE WITH PUBLIC OFFICER"',
+                    '"DECEPTIVE PRACTIVE"', '"GAMBLING"', 
+                    '"LIQUOR LAW VIOLATION"', '"OBSCENITY"', 
+                    '"HUMAN TRAFFICKING"', '"PROSTITUTION"',
+                    '"PUBLIC INDECENCY"', '"PUBLIC PEACE VIOLATION"',
+                    '"NARCOTICS"', '"OTHER NARCOTIC VIOLATION"',
+                    '"CONCEALED CARRY LICENSE VIOLATION"']
             }
 
 CHICAGO_AREA=606100000
@@ -86,18 +114,22 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def score_normalizer(x, tolerance=1.5, base=1.5):
     '''
-    Function used to turn scores from 0 to infinity into scores from 0 to 1, such that:
+    Function used to turn scores from 0 to infinity into scores 
+    from 0 to 1, such that:
          f(0)=1
          lim_{x-->inf} f(x)=0
          f is decreasing, and f>=0
     Tolerance and base should be a floats bigger than 1.
-    A high tolerance value corresponds to small deviation between scores close to 0, but also makes it harsher on scores larger than 1
+    A high tolerance value corresponds to small deviation 
+    between scores close to 0, but also makes it 
+    harsher on scores larger than 1
     (e.g. score_normalizer(0.25, 2, 2)=0.95760, score_normalizer(2,2,2)=0.0625
           score_normalizer(0.25, 1, 2)=0.8409, score_normalizer(2,1,2)=0.25)
     Base is the reciprocal of what we want f(1) to be.
     (i.e. score_normalizer(y, base, 1)=1/base)
 
-    The values 1.5 and 1.5 produced reasonable numbers (this is just f(x)=1.5^(-x^1.5))
+    The values 1.5 and 1.5 produced reasonable numbers 
+    (this is just f(x)=1.5^(-x^1.5))
     '''
 
     assert tolerance>=1, "please make tolerance greater than 1"
@@ -106,8 +138,10 @@ def score_normalizer(x, tolerance=1.5, base=1.5):
 
 def db_helper(list_of_filenames, table_name, path=csv_path):
     '''
-    This is a function which takes in a list of filenames, a table_name for them. Returns the necessary
-    data and insertion/creation strings to import this into a database usable by sqlite3. Assumes all the files
+    This is a function which takes in a list of filenames, 
+    a table_name for them. Returns the necessary
+    data and insertion/creation strings to import this into a 
+    database usable by sqlite3. Assumes all the files
     under the same table_name are formatted similarly
     '''
 
@@ -121,7 +155,8 @@ def db_helper(list_of_filenames, table_name, path=csv_path):
 
                 ##sometimes csv finds empty lines for some reason
                 if row!=[]:
-                    assert len(row)==length, "row {} in {} has {} columns, but should have {}".format(row, filename, len(row), length)
+                    assert len(row)==length, '''row {} in {} has {} columns, but 
+                    should have {}'''.format(row, filename, len(row), length)
                     data.append(tuple(row))
 
     create_column_string=", ".join([i + " " + sql_datatypes[table_name][i] for i in ordered_columns[table_name]])
@@ -133,7 +168,8 @@ def db_helper(list_of_filenames, table_name, path=csv_path):
 
 
 def create_db(labeled_filenames, database_name, path=csv_path): 
-    '''labeled filenames is a dictionary, with key value pairs as table_name: list of filenames under that table
+    '''labeled filenames is a dictionary, with key value pairs
+     as table_name: list of filenames under that table
     creates a sqlite3 database out of it'''
 
     con=sqlite3.connect(database_name)
@@ -147,14 +183,22 @@ def create_db(labeled_filenames, database_name, path=csv_path):
     con.commit()
 
 def merge_results(list_of_lists_of_dictionaries):
+    ##Was going to be used by search when search created multiple lists of
+    ##dictionaries. No longer necessary because we just look at crime data.
+    ##Kept it here so I didn't break anything
     '''
     For use by search()
-    The items (lists) in the outer-most list represent information for a specific set of categories.
-        Each list in this outer list has n dictionaries, where n is the number of houses
-            Each dictionary has (key, value) pairs as (category, information) which are specific to that particular house,
-            under the specific categories from the outer list
+    The items (lists) in the outer-most list represent information
+    for a specific set of categories.
+        Each list in this outer list has n dictionaries,
+        where n is the number of houses
+            Each dictionary has (key, value) pairs as 
+            (category, information) which are specific to 
+            that particular house,under the specific categories
+            from the outer list
 
-    Output: Merge all dictionaries relevant to the same house into one, and return a list of dictionaries in the same order they came in'''
+    Output: Merge all dictionaries relevant to the same house into one,
+    and return a list of dictionaries in the same order they came in'''
     num_houses=len(list_of_lists_of_dictionaries[0])
     for j in list_of_lists_of_dictionaries:
         assert len(j)==num_houses
@@ -171,7 +215,8 @@ def merge_results(list_of_lists_of_dictionaries):
 
 def dict_merge(d1,d2):
     '''
-    d1 and d2 are dictionary with strings as keys. This function takes all the key, value pairs from d2
+    d1 and d2 are dictionary with strings as keys.
+    This function takes all the key, value pairs from d2
     and adds them to d1. Returns a merged dictionary.
     '''
     for j in d2:
@@ -183,13 +228,18 @@ def dict_merge(d1,d2):
 
 
 def search(time, list_of_houses, distance, database_name): 
-    '''Main function called by the website. Takes in a time (YYYY-MM-DD format), list of houses (list of lat,long tuples),
-    distance (in meters, for the radius), and database_name, the name of the database to search in sql_strings
+    '''Main function called by the website. Takes in a time (YYYY-MM-DD format), 
+    list of houses (list of lat,long tuples), distance (in meters, for the radius),
+    and database_name, the name of the database to search in sql_strings
 
-    Returns a list of dictionaries, each of which represents the house information (in the order they came in), with keys as a category
-    (e.g. Violent crime, Property crime, bike_racks), and values as (results, score), where results is a list of sql tuple results, and score is a score from 0 to 1 on that category
+    Returns a list of dictionaries, each of which represents the house information
+    (in the order they came in), with keys as a category (e.g. Violent crime, 
+    Property crime, bike_racks), and values as (results, score), where 
+    results is a list of sql tuple results, and score is a score 
+    from 0 to 1 on that category
 
-    Sample use: search("2014-01-01", [(41.783213,-87.601375), (41.973047, -87.777324)], 1000, some_db.db)
+    Sample use: 
+    search("2014-01-01", [(41.783213,-87.601375), (41.973047, -87.777324)], 1000, some_db.db)
     '''
 
 
@@ -206,31 +256,45 @@ def search(time, list_of_houses, distance, database_name):
     crime_results=crime_search_efficient(time, list_of_houses, distance, prop_area, cur)
     #bike_results=bike_search(list_of_houses, distance, prop_area, cur)
     #fire_police_results=fire_police_search(list_of_houses, distance, prop_area, cur)
-    return merge_results([crime_results, bike_results, fire_police_results])
+    return merge_results([crime_results])#, bike_results, fire_police_results])
     #returns a list of dictionaries, with each key as a category, and the value is (results, score)
 
     
 def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
-    '''More efficient version of crime_search
+    '''More efficient version of crime_search:
+
+    we want to capture all relevant data with only as few sql searches as 
+    possible for efficiency, since the database is almost a million 
+    data points long. Instead of using the distance given to run a query 
+    for each house lat long pair, we calculate the maximum distance from
+    all houses to the average lat, long pair. Then, by the triangle inequality 
+    (S2 is a metric space with the haversine metric), 
+    for all data points p and all houses x, we have:
+
+    if d(x,p)<=distance, we must have d(x_avg,p)<=d(x,x_avg)+d(x,p)
+    Hence d(x_avg, p)<=max(d(x,x_avg)+distance
+
+    So we widen our search to distance+max(d(x,x_avg)) for the sql query, 
+    and we will capture all the data points we need for each house.
+
+
     Inputs: time, in YYYY-MM-DD format
     list_of_houses: a list of lat,long tuples
     distance (in meters)
-    prop_area, the proportion of the area of the circle we are searching in, relative to the entire city of chicago (approximately)
+    prop_area, the proportion of the area of the circle we are searching in, 
+    relative to the entire city of chicago (approximately)
     cursor=sqlite3 cursor
 
-    Returns a list of dictionaries, where each dictionary has information for a particular house, in the order they came in from list_of_houses
-    Each dictionary has keys: crime categories, and values: (results from sql query, score)'''
+    Returns a list of dictionaries, where each dictionary has information for
+    a particular house, in the order they came in from list_of_houses
+    Each dictionary has keys: crime categories, and values: 
+    (results from sql query, score)'''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
     #never going to get empty lists
     average_lat=np.mean([j[0] for j in list_of_houses])
     average_long=np.mean([j[1] for j in list_of_houses])
-    #we want to capture all relevant data with only as few sql searches as possible for efficiency, since the database is almost a million data points long.
-    #Instead of using the distance given to run a query for each house lat long pair, we calculate the maximum distance from all houses to the average lat, long pair
-    #Then, by the triangle inequality (S2 is a metric space with the haversine metric), for all data points p and all houses x, we have:
-    #if d(x,p)<=distance, we must have d(x_avg,p)<=d(x,x_avg)+d(x,p)<=max(d(x,x_avg)+distance
-    #So we widen our search to distance+max(d(x,x_avg)) for the sql query, and we will capture all the data points we need for each house.
     for i in CRIME_TYPES:
         print("searching {}".format(i))
         possible_crimes=CRIME_TYPES[i]
@@ -238,7 +302,8 @@ def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
         #Search the entire city of chicago in the given timeframe
         cursor.execute(sql_strings["crimes"][2].format(time, possible_crimes_string))
         total_i_crimes=cursor.fetchall()[0][0]
-        print("found {} total results in the entire city. Searching for local results...".format(total_i_crimes))
+        print('''found {} total results in the entire city.
+         Searching for local results...'''.format(total_i_crimes))
         distances=[haversine(average_lat, average_long, j[0], j[1]) for j in list_of_houses]
         d_max=max(distances)
         print("enlarging radius from {} to {}".format(distance, distance+d_max))
@@ -247,11 +312,13 @@ def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
         results=cursor.fetchall()
         print("found {} local results. Refining...".format(len(results)))
         for j in range(len(list_of_houses)):
-            #each of these was originally a sql query, but now we are only searching for things inside the results list (smaller)
+            #each of these was originally a sql query, but now we are 
+            #only searching for things inside the results list (smaller)
             local_results=[k for k in results if haversine(list_of_houses[j][0], list_of_houses[j][1], k[3], k[4])<=distance]
             num_local_crimes=len(local_results)
-            #crime density measure. If this is 1, then the neighborhood given (a circle of radius distance from the lat/long pair) has an average amount of crime
-            #for its size, compared to the rest of chicago
+            #crime density measure. If this is 1, then the neighborhood given 
+            #(a circle of radius distance from the lat/long pair) has an 
+            #average amount of crimefor its size, compared to the rest of chicago
             #higher numbers are bad. 
             prop_crimes=num_local_crimes/total_i_crimes
             #normalize the score, see the score_normalizer function
@@ -291,9 +358,11 @@ def crime_search(time, list_of_houses, distance, prop_area, cursor):
 
 
 def bike_search(list_of_houses, distance,prop_area, cursor):
-    '''Ended up not being used for ranking, we did not think it was very relevant. (can keep bikes inside...)
+    '''Ended up not being used for ranking, we did not think
+     it was very relevant. (can keep bikes inside...)
     Inputs very similar to crime_search_efficient, except there is no timeframe
-    Searches for total number of bike_racks, both public and divvy bike racks, '''
+    Searches for total number of bike_racks, both public and divvy bike racks
+     '''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
@@ -324,8 +393,10 @@ def bike_search(list_of_houses, distance,prop_area, cursor):
 def fire_police_search(list_of_houses, distance, prop_area, cursor):
     '''Ended up not being used for ranking
     Inputs the same as bike_search
-    Searches for the 'fire station density' and 'police station density' in a given circle
-    Not enough data points to use this well, and not really that relevant for ranking (ended up asking too many questions)'''
+    Searches for the 'fire station density' and 
+    'police station density' in a given circle
+    Not enough data points to use this well, and not really 
+    that relevant for ranking (ended up asking too many questions)'''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
@@ -335,14 +406,17 @@ def fire_police_search(list_of_houses, distance, prop_area, cursor):
     cursor.execute(sql_strings["fire_police"][2].format('"P"'))
     police_total_results=cursor.fetchall()[0][0]
 
-    print("found {} total fire stations, {} total police stations. Searching for local results...".format(fire_total_results, police_total_results))
+    print('''found {} total fire stations, {} total police stations. 
+        Searching for local results...'''.format(fire_total_results, police_total_results))
     for j in range(len(list_of_houses)):
-        cursor.execute(sql_strings["fire_police"][1].format(list_of_houses[j][0],list_of_houses[j][1], distance, '"F"'))
+        cursor.execute(sql_strings["fire_police"][1].
+            format(list_of_houses[j][0],list_of_houses[j][1], distance, '"F"'))
         fire_results=cursor.fetchall()
-        cursor.execute(sql_strings["fire_police"][1].format(list_of_houses[j][0],list_of_houses[j][1], distance, '"P"'))
+        cursor.execute(sql_strings["fire_police"][1].
+            format(list_of_houses[j][0],list_of_houses[j][1], distance, '"P"'))
         police_results=cursor.fetchall()
-        #print("found {} local fire stations, {} local police stations".format(len(fire_results), len(police_results)))
-        prop_fire, prop_police=len(fire_results)/fire_total_results, len(police_results)/police_total_results
+        prop_fire, prop_police=len(fire_results)/fire_total_results,
+        len(police_results)/police_total_results
         if prop_fire==0:
             fire_score=0
         else:
