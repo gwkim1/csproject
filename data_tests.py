@@ -3,12 +3,12 @@ import os
 import re
 
 data_folder="chicago_data/Clean/"
+'''data cleaning functions'''
 
-
-def change_date_column(filename):
+def change_date_column(n, filename):
 	'''Crimes csv files have date in MM/DD/YYYY HH:MM:SS PM/AM.
 	This changes the format to one accepted by sql as datetime, as YYYY-MM-DD HH:MM:SS
-	Assumes the first column is the Date column'''
+	assumes the nth row is the date column'''
 	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
 		header=f.readline()
 		g.write(header)
@@ -16,7 +16,7 @@ def change_date_column(filename):
 		#if AM and Hour==12, Hour=00
 		#If PM and Hour!=12, Hour+=12
 		for row in readerf:
-			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})", row[0])
+			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})", row[n])
 			MM,DD,YYYY,HH,mm,SS,meridiem=date_search.group(1),date_search.group(2),date_search.group(3),date_search.group(4),date_search.group(5),date_search.group(6),date_search.group(7)
 			if meridiem=="PM" and HH!="12":
 				int_hour=int(HH)
@@ -24,7 +24,8 @@ def change_date_column(filename):
 			if meridiem=="AM" and HH=="12":
 				HH="00"
 			fixed_date=YYYY+"-"+MM+"-"+DD+" "+HH+":"+mm+":"+SS
-			new_row=[fixed_date]+[j for j in row if j!=row[0]]
+			new_row=[j for j in row if j!=row[n]]
+			new_row.insert(n,fixed_date)
 			assert len(new_row)==len(row)
 			row_string=",".join(new_row)
 			g.write(row_string+"\n")	
@@ -32,6 +33,7 @@ def change_date_column(filename):
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
 def remove_entries_with_empty_fields(filename):
+	'''Basically self-explanatory'''
 	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
 		header=f.readline()
 		g.write(header)
@@ -39,7 +41,7 @@ def remove_entries_with_empty_fields(filename):
 		for row in readerf:
 			valid=True
 			for j in row:
-				if j=="":
+				if j.strip()=="":
 					valid=False
 					break
 			if valid:
@@ -48,8 +50,13 @@ def remove_entries_with_empty_fields(filename):
 	os.remove(data_folder+filename)
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
-def add_crime_codes(filename):
-	'''Add crime_codes seen in filename, which are not in IUCR_codes.csv'''
+def add_crime_codes(filename, code_col, prim_col, sec_col):
+	'''Add crime_codes seen in filename, which are not in IUCR_codes.csv
+	code_col: column index for the IUCR code 
+	prim_col: column index for the primary description
+	sec_col: column index for the secondary description
+
+	IUCR_codes.csv is assumed to have these at locations 0,1,2 respectively'''
 	d={}
 	with open(data_folder+"IUCR_codes.csv") as f:
 		header=f.readline()
@@ -68,9 +75,9 @@ def add_crime_codes(filename):
 		reader=csv.reader(f, delimiter=",")
 		for row in reader:
 			try:
-			    assert row[4].strip() in d
+			    assert row[code_col].strip() in d
 			except AssertionError:
-				codes_not_in_IUCR_list.add(", ".join([row[4].strip(),row[5].strip(),row[6].strip()]))
+				codes_not_in_IUCR_list.add(", ".join([row[code_col].strip(),row[prim_col].strip(),row[sec_col].strip()]))
 	with open(data_folder+"IUCR_codes.csv", "a") as f:
 		changed=False
 		for j in codes_not_in_IUCR_list:
@@ -95,7 +102,7 @@ def check_columns(filename):
 
 def fix_codes(n, filename):
 	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row, specified as an input
-	Makes it so every IUCR code is exactly 4 characters long'''
+	Makes it so every IUCR code is exactly 4 characters long (i.e. 13A-> 013A) for constistency'''
 	with open(data_folder+filename) as f, open(data_folder+filename+"2", "w") as g:
 		header=f.readline()
 		g.write(header)
@@ -113,8 +120,12 @@ def fix_codes(n, filename):
 	os.remove(data_folder+filename)
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
-def check_codes(filename):
-	'''Used with the crimes datasets to check for consistency between them and IUCR_codes.csv (before erasing the columns)'''
+def check_codes(filename, code_col, prim_col, sec_col):
+	'''Used with the crimes datasets to check for consistency between them and IUCR_codes.csv (before erasing the columns)
+	Inputs: code_col is the column index for the IUCR codes, prim_col is column index for the primary type description, sec_col is column index for secondary type description (all in the input filename)
+	filename is a crime dataset with these three columns
+	(IUCR_codes.csv has code_col, prim_col, and sec_col 0,1,2 respectively)
+	Some annoyances: IUCR Code is 5114 is inconsistent across crime files: It is either NON - CRIMINAL or NON-CRIMINAL in different crime files'''
 	d={}
 	with open(data_folder+filename) as f, open(data_folder+"IUCR_codes.csv") as g:
 		headerf, headerg=f.readline(), g.readline()
@@ -126,9 +137,14 @@ def check_codes(filename):
 		readerf=csv.reader(f, delimiter=",")
 		count=1
 		for row in readerf:
-			if row[4].strip()!="5114":
-			    assert d[row[4].strip()]==(row[5].strip(), row[6].strip()), "code {} in row {} is {},{} in crime file, but {},{} in IUCR codes".format( row[4].strip() , count+1, d[row[4].strip()][0] ,d[row[4].strip()][1] ,row[5].strip(),row[6].strip())
-			    count+=1
+			if row[code_col].strip()!="5114":
+			    assert d[row[code_col].strip()]==(row[prim_col].strip(), row[sec_col].strip()), "code {} in row {} is {},{} in crime file but {},{} in IUCR codes".\
+			    format( row[code_col].strip() , count+1, row[prim_col].strip(), row[sec_col].strip(), d[row[code_col].strip()][0] ,d[row[code_col].strip()][1])
+			else:
+				primary_types=["NON-CRIMINAL", "NON - CRIMINAL"]
+				sec_types="FOID - REVOCATION"
+				assert row[prim_col].strip() in primary_types and row[sec_col].strip()==sec_types
+			count+=1
 
 def remove_columns(filename, columns_to_erase):
 	'''columns=list of column strings to remove. Checks header in filename given, assumed csv
@@ -190,16 +206,20 @@ def clean_crime_csv(filename):
 	Please run ./comma_parser.sh crimes_2016.csv BEFORE running this'''
 	keep_these_columns=["Date", "IUCR", "Latitude", "Longitude"]
 	header=get_header(filename)
-	n=header.index("IUCR")
-	cols_to_remove=[j for j in header if j not in keep_these_columns]
+
+	code_col=header.index("IUCR")
+	prim_col=header.index("Primary Type")
+	sec_col=header.index("Description")
+	date_col=header.index("Date")
+
 	check_columns(filename)
-	fix_codes(n, filename)
-	check_codes(filename)
-	add_crime_codes(filename)
-	remove_columns(filename, cols_to_remove)
+	fix_codes(code_col, filename)
+	check_codes(filename, code_col, prim_col, sec_col)
+	add_crime_codes(filename, code_col, prim_col, sec_col)
+	change_date_column(date_col, filename)
 	remove_entries_with_empty_fields(filename)
-	change_date_column(filename)
-	
+	cols_to_remove=[j for j in header if j not in keep_these_columns]
+	remove_columns(filename, cols_to_remove)
 
 if __name__=="__main__":
 	pass

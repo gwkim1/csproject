@@ -39,7 +39,7 @@ test_coordinates={"me": (41.783213,-87.601375), "low crime": (41.973047, -87.777
 
 sql_strings={"crimes":
                       {1: '''SELECT date, primary_type, secondary_type, latitude, longitude FROM IUCR_codes JOIN crimes 
-                             ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) 
+                             ON IUCR_codes.code=crimes.code WHERE strftime('%s', date)>=strftime('%s', {}) #this uses unix timestamps
                              AND distance({},{}, latitude, longitude)<={} AND primary_type IN {};''',
 
                        2: '''SELECT count(*) FROM crimes JOIN IUCR_codes ON IUCR_codes.code=crimes.code WHERE strftime('%s',date)>=strftime('%s', {}) AND primary_type IN {};'''},
@@ -133,7 +133,8 @@ def db_helper(list_of_filenames, table_name, path=csv_path):
 
 
 def create_db(labeled_filenames, database_name, path=csv_path): 
-    '''labeled filenames is a dictionary, with key value pairs as table_name: list of filenames under that table'''
+    '''labeled filenames is a dictionary, with key value pairs as table_name: list of filenames under that table
+    creates a sqlite3 database out of it'''
 
     con=sqlite3.connect(database_name)
     cur=con.cursor()
@@ -182,7 +183,17 @@ def dict_merge(d1,d2):
 
 
 def search(time, list_of_houses, distance, database_name): 
+    '''Main function called by the website. Takes in a time (YYYY-MM-DD format), list of houses (list of lat,long tuples),
+    distance (in meters, for the radius), and database_name, the name of the database to search in sql_strings
+
+    Returns a list of dictionaries, each of which represents the house information (in the order they came in), with keys as a category
+    (e.g. Violent crime, Property crime, bike_racks), and values as (results, score), where results is a list of sql tuple results, and score is a score from 0 to 1 on that category
+
+    Sample use: search("2014-01-01", [(41.783213,-87.601375), (41.973047, -87.777324)], 1000, some_db.db)'''
+
+
     prop_area=pi*distance**2/CHICAGO_AREA
+    ##Not that accurate for circles that clip the edge of chicago
     con=sqlite3.connect(database_name)
     con.create_function("distance", 4, haversine)
     cur=con.cursor()
@@ -192,34 +203,45 @@ def search(time, list_of_houses, distance, database_name):
         rv.append({})
     #these are all lists of dictionaries, containing dictionaries as values
     crime_results=crime_search_efficient(time, list_of_houses, distance, prop_area, cur)
-    bike_results=bike_search(list_of_houses, distance, prop_area, cur)
-    fire_police_results=fire_police_search(list_of_houses, distance, prop_area, cur)
+    #bike_results=bike_search(list_of_houses, distance, prop_area, cur)
+    #fire_police_results=fire_police_search(list_of_houses, distance, prop_area, cur)
     return merge_results([crime_results, bike_results, fire_police_results])
     #returns a list of dictionaries, with each key as a category, and the value is (results, score)
 
     
 def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
+    '''More efficient version of crime_search
+    Inputs: time, in YYYY-MM-DD format
+    list_of_houses: a list of lat,long tuples
+    distance (in meters)
+    prop_area, the proportion of the area of the circle we are searching in, relative to the entire city of chicago (approximately)
+    cursor=sqlite3 cursor
+
+    Returns a list of dictionaries, where each dictionary has information for a particular house, in the order they came in from list_of_houses
+    Each dictionary has keys: crime categories, and values: (results from sql query, score)'''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
     #never going to get empty lists
     average_lat=np.mean([j[0] for j in list_of_houses])
     average_long=np.mean([j[1] for j in list_of_houses])
-    #we want to capture all relevant data with only as few sql searches as possible for efficiency, since the database is over a million data points long.
+    #we want to capture all relevant data with only as few sql searches as possible for efficiency, since the database is almost a million data points long.
     #Instead of using the distance given to run a query for each house lat long pair, we calculate the maximum distance from all houses to the average lat, long pair
-    #Then, by the triangle inequality (I think S2 is a metric space with haversine metric?), for all data points p and all houses x, we have:
+    #Then, by the triangle inequality (S2 is a metric space with the haversine metric), for all data points p and all houses x, we have:
     #if d(x,p)<=distance, we must have d(x_avg,p)<=d(x,x_avg)+d(x,p)<=max(d(x,x_avg)+distance
     #So we widen our search to distance+max(d(x,x_avg)) for the sql query, and we will capture all the data points we need for each house.
     for i in CRIME_TYPES:
         print("searching {}".format(i))
         possible_crimes=CRIME_TYPES[i]
         possible_crimes_string="("+",".join(possible_crimes)+")"
+        #Search the entire city of chicago in the given timeframe
         cursor.execute(sql_strings["crimes"][2].format(time, possible_crimes_string))
         total_i_crimes=cursor.fetchall()[0][0]
         print("found {} total results in the entire city. Searching for local results...".format(total_i_crimes))
         distances=[haversine(average_lat, average_long, j[0], j[1]) for j in list_of_houses]
         d_max=max(distances)
         print("enlarging radius from {} to {}".format(distance, distance+d_max))
+        #Searching a distance distance+d_max from the average lat/long
         cursor.execute(sql_strings["crimes"][1].format(time,average_lat, average_long, distance+d_max, possible_crimes_string))
         results=cursor.fetchall()
         print("found {} local results. Refining...".format(len(results)))
@@ -227,7 +249,11 @@ def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
             #each of these was originally a sql query, but now we are only searching for things inside the results list (smaller)
             local_results=[k for k in results if haversine(list_of_houses[j][0], list_of_houses[j][1], k[3], k[4])<=distance]
             num_local_crimes=len(local_results)
+            #crime density measure. If this is 1, then the neighborhood given (a circle of radius distance from the lat/long pair) has an average amount of crime
+            #for its size, compared to the rest of chicago
+            #higher numbers are bad. 
             prop_crimes=num_local_crimes/total_i_crimes
+            #normalize the score, see the score_normalizer function
             score=score_normalizer(prop_crimes/prop_area)
             rv[j][i]=(local_results, score)
         print("done")
@@ -235,7 +261,7 @@ def crime_search_efficient(time, list_of_houses, distance, prop_area, cursor):
             
 
     
-''' No longer used 
+''' No longer used, took a long time
 
 
 def crime_search(time, list_of_houses, distance, prop_area, cursor):
@@ -260,8 +286,13 @@ def crime_search(time, list_of_houses, distance, prop_area, cursor):
     return rv
 
 '''
+
+
+
 def bike_search(list_of_houses, distance,prop_area, cursor):
-    #divvy vs nondivvy
+    '''Ended up not being used for ranking, we did not think it was very relevant. (can keep bikes inside...)
+    Inputs very similar to crime_search_efficient, except there is no timeframe
+    Searches for total number of bike_racks, both public and divvy bike racks, '''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
@@ -290,7 +321,10 @@ def bike_search(list_of_houses, distance,prop_area, cursor):
     return rv
 
 def fire_police_search(list_of_houses, distance, prop_area, cursor):
-    #not enough data points to use this well? not for ranking
+    '''Ended up not being used for ranking
+    Inputs the same as bike_search
+    Searches for the 'fire station density' and 'police station density' in a given circle
+    Not enough data points to use this well, and not really that relevant for ranking (ended up asking too many questions)'''
     rv=[]
     for j in range(len(list_of_houses)):
         rv.append({})
