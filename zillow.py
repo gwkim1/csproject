@@ -1,10 +1,7 @@
-#import requests
 import bs4
 import urllib.parse
 import urllib.request
 import re
-
-
 
 # Dictionary used when extracting house type information from a detailed page about a house option
 HOUSE_TYPE_DICT_DETAILED = {"Condo": "condos/co-ops", "Single Family": "houses", "Multi Family": "apartments", "Apartment": "apartments", "Cooperative": "condos/co-ops"}
@@ -15,12 +12,9 @@ HOUSE_SEARCH_DICT = {"co-op": "condos/co-ops", "condo": "condos/co-ops", "condos
 # Dictionary used to format preferred house types according to the url structure of zillow
 HOUSE_TYPE_DICT = {"houses": "house", "apartments": "apartment_duplex", "condos/co-ops": "condo", "townhomes": "townhouse", "manufactured": "mobile", "lots/land": "land"}
 
-
-
-
 # Each House objects stores information about a single resulting rent/buy option from Zillow
 class House:
-    # global variable 
+    # Global variable 
     house_id = 0
     
     def __init__(self, house_article, unit_info = None):
@@ -113,23 +107,21 @@ class House:
         # Get a new beautifulsoup object with the new link
         new_soup = get_soup(link)
 
-        # Find the div tag that stores information about the house type
+        # Find the div tags that store information about the house type
         top_facts_list = new_soup.find_all("div", {"class": "top-facts"})
-        #top_facts = new_soup.find("div", {"class": "top-facts"}).find_all("li")
         if len(top_facts_list) == 1:
-            print("there is only one entry in top_facts_list")
             top_facts_table = top_facts_list[0]
         else:
+            # The house type is stored in one of the div tags
+            # That has label "Facts", so only leave that tag
             for top_facts in top_facts_list:
-                print("h3:", top_facts.find("h3").text)
                 if top_facts.find("h3").text != "Facts":
                     top_facts_list.remove(top_facts)
             top_facts_table = top_facts_list[0]
 
         # There are other information about the house as well, so these lines
-        # Determine whether the information about the house type
+        # Determine whether the information is actually about the house type
         for fact in top_facts_table.find_all("li"):
-            print(fact.text)
             if fact.text in HOUSE_TYPE_DICT_DETAILED:
                 self.house_type = HOUSE_TYPE_DICT_DETAILED[fact.text]
 
@@ -229,14 +221,9 @@ def create_house_objects(soup, url):
     
     # Create a list to store the "article" tags for each house
     house_articles_list = []
-    
-    soup_count = 0
 
     # For each beautifulsoup object 
     for eachsoup in soup_list:
-
-        soup_count += 1
-
         # Find all "article" tags, which each represent each house
         house_articles = eachsoup.find_all("article", {"class": "property-listing"})
 
@@ -248,26 +235,15 @@ def create_house_objects(soup, url):
         # After deleting similar results from the list of articles
         for similar_house in similar_house_articles:
             house_articles.remove(similar_house)
-        print("soup_count:", soup_count, "num of articles:", len(house_articles))
 
         # Append this beautifulsoup's list of articles to the total list of articles
         house_articles_list += house_articles   
-        print("soup_count:", soup_count, "after adding:", len(house_articles_list))
 
     # Create a list to store the list of actual house objects
     house_list = []
 
-    article_count = 0
     # For each article in the total article list created:
     for house_article in house_articles_list:
-        article_count += 1  
-
-        # 
-        if house_article.find("div", {'class': 'property-info'}).find("a") != None:
-            temp_address = house_article.find("div", {'class': 'property-info'}).find("a")["title"]
-        else:
-            temp_address = "No"
-        print("article_count:", article_count, temp_address)
 
         # If the article represents a rent option with multiple suboptions:
         if "grouped" in house_article["class"]:
@@ -284,33 +260,7 @@ def create_house_objects(soup, url):
 
     return house_list
 
-
-def get_multiple_units(house_article):
-    '''
-    If the house_article contains multiple options for rent,
-    follow the link, scrape information and return the list of House objects.
-    '''
-    # Assuming this
-    #if "grouped" in house_article["class"]:
-    link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
-    link_soup = get_soup(link)
-    #print(link_soup.find("body")["id"])
-    #print(link_soup.find("table", {"id" : "units-list_available"}))
-    print("This link is visited:", link)
-    table_match_list = []
-    if link_soup.find("table", {"id" : "units-list_available"}) != None:
-        table_match_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("tr", {"class": "matches-filters"})
-    print("Number of matches-filters", len(table_match_list))
-    house_list = []
-    match_count = 0
-    for match in table_match_list:
-        match_count += 1
-        print("match_count:", match_count)
-        house_list.append(House(house_article, unit_info = match))
-
-    return house_list
-
-    
+   
 def extract_numbers(num_str):
     '''
     Extract only the numbers from a string containing numbers

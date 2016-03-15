@@ -12,7 +12,29 @@ the order of articles are not ordered as shown in the website
 I currently set default value as -1
 '''
 
+def get_multiple_units(house_article):
+    '''
+    If the house_article contains multiple options for rent,
+    follow the link, scrape information and return the list of House objects.
+    '''
 
+    link = "http://www.zillow.com" + house_article.find_all("a", {"class": "routable"})[1]["href"]
+    link_soup = get_soup(link)
+    #print(link_soup.find("body")["id"])
+    #print(link_soup.find("table", {"id" : "units-list_available"}))
+    print("This link is visited:", link)
+    table_match_list = []
+    if link_soup.find("table", {"id" : "units-list_available"}) != None:
+        table_match_list = link_soup.find("table", {"id" : "units-list_available"}).find_all("tr", {"class": "matches-filters"})
+    print("Number of matches-filters", len(table_match_list))
+    house_list = []
+    match_count = 0
+    for match in table_match_list:
+        match_count += 1
+        print("match_count:", match_count)
+        house_list.append(House(house_article, unit_info = match))
+
+    return house_list
 
 class House:
     def __init__(self, house_article):
