@@ -10,10 +10,12 @@ body {
 }
 </style>
 </head>
+<!-- Adds a back button, from http://www.w3schools.com/jsref/met_his_back.asp-->
 <button onclick="goBack()">Go Back to Results</button>
 
 
 <script>
+
 function goBack() {
     window.history.back();
 }
@@ -23,6 +25,7 @@ function goBack() {
 <p>Price: ${{current_price}} </p>
 <p>Bathroom: {{current_bathroom}} </p>
 <p>Bedroom: {{current_bedroom}}</p>
+<a href="{{current_link}}">Visit zillow site</a>
 <form method="post">
     {% csrf_token %}
     <label for="distance">Distance: </label>

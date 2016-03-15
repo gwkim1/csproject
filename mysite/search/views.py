@@ -220,6 +220,7 @@ def results(request):
         total_scores.append(Yelp_results[i]+database_scores[i])
     # Passes the houses, user input, scores, and preferences into ranking to get the final scores 
     # Also sets the scores of each house object
+    print(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
     raw_scores_dict = ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
     scores_dict = {}
     top_ten_address = []
@@ -297,13 +298,13 @@ def results(request):
         index+=1
 
     with open(HOUSE_PATH+"/attributes.csv", "w") as f:
-        f.write("id,address,price,bedroom,bathroom,latitude,longitude,score\n")
+        f.write("id,address,price,bedroom,bathroom,latitude,longitude,score,link\n")
         for j in house_list:
             address = j.address
             if "," in address:
                 address = address.replace(',', '')
 
-            row_string="{},{},{},{},{},{},{},{}".format(j.house_id, address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score)
+            row_string="{},{},{},{},{},{},{},{},{}".format(j.house_id, address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score, j.link)
             f.write(row_string+"\n")
 
 
@@ -351,7 +352,9 @@ def results(request):
     return render(request, 'search/results.html', c)
 
 def detailed_results(request):
-    
+    # The function for our detailed results page
+    # Matches the house id with the selected house and adds the data to the dictionary
+    # Creates and saves a graph
     c = {}
     house_id=request.POST.get("house_id")
     if not house_id:
@@ -368,6 +371,7 @@ def detailed_results(request):
                 c["current_price"]=row[2]
                 c["current_address"]=row[1]
                 c["current_house_id"]=house_id
+                c["current_link"] = row[8]
                 break
     c['current_distance'] = request.POST.get('distance', 1200)
     data=[]
@@ -407,7 +411,7 @@ def detailed_results(request):
     plt.grid(True)
     plt.savefig(HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip()))
     plt.clf()
-    c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
+    #c["crime_graph"]=HOUSE_PATH+"/{}/historical_crime.png".format(house_id.strip())
 
     # Changes graph_data_raw into correct format
     crime_list = []
@@ -432,6 +436,7 @@ def detailed_results(request):
         distance *= 1609.34
     if distance > 40000:
         distance = 40000
+    print(c["current_link"])
     c["current_term"] =request.POST.get("term", "food")
     page = request.POST.get('page',1)
     c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], category_filter = current_cat, offset = (int(page)-1)*20)

@@ -24,6 +24,7 @@ VARIABLE_LIST = ["name", "distance", "location","rating", "review_count", "phone
 # get_score and get_Yelp_scores are used to generate scores for our application
 # search performed yelp requests and returns the 
 def get_results(params):
+  # Requests data from the Yelp API
   # This function is from http://letstalkdata.com/2014/02/how-to-use-the-yelp-api-in-python/
   session = rauth.OAuth1Session(consumer_key = CONSUMER_KEY, consumer_secret = CONSUMER_SECRET
   ,access_token = TOKEN, access_token_secret = TOKEN_SECRET)
@@ -37,7 +38,8 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=
   # See the Yelp API for more details
   # This function is a modified from http://letstalkdata.com/2014/02/how-to-use-the-yelp-api-in-python/
   '''
-  Possible Filters
+  Puts the parameters into a dictionary for use in get results
+  Possible Filters:
   term
   limit
   offset
@@ -64,6 +66,8 @@ def get_search_parameters(lat, long, term, radius, limit, category_filter, sort=
 def get_score(locations, category_filter, radius):
   location_raw_scores = []
   if len(locations) > 10:
+    # Since it would take too long to make more than 10 live requests per category
+    # We limited it to 10, and generated the scores for the top 10 instead
     print(category_filter, "scores will take too long to generate with 10+ properties")
     return [0]*len(locations)
   for location in locations:
@@ -138,7 +142,7 @@ def yelp_search(location, distance, term, category_filter = "", sort = 0, offset
 
 
 def dict_to_list(dictionary, letter):
-  # Converts dictionary to list in wanted format
+  # Converts dictionary to list in wanted format to use in the detailed results page
   categories = ""
   for i in dictionary["categories"]:
     categories += i[0]+" "
@@ -156,9 +160,9 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
   # If there are no businesses, or there is an error retrun an empty list
   if "businesses" not in api_call.keys():
     return []
-  time.sleep(1.0)
   total = 0
   results = []
+  # Adds the variable we care about from each business to results
   for business in api_call["businesses"]:
     total+=1
     business_dict = {}
@@ -169,6 +173,7 @@ def search(location, term = "", radius = WALKING_DISTANCE, limit = 20, category_
         else:
           business_dict[variable] = business[variable]
     results.append(business_dict)
+  # Returns count if specified
   if count:
     return total, results
   else:
