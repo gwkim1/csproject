@@ -47,6 +47,9 @@ body {
     <option id="house_type2" name="house_type2" value=""></option>
   </select>
   <br>
+  <small>Notes:<br>
+Studio apartments are considered as having 0 bedroom<br>
+Houses for auction do not have prices and will not be included in scoring<br></small>
   <label for="listing_type3">Are you buying or renting? </label>
   <select name="listing_type">
     <option id="listing_type" name="listing_type" value="sale"> Buying </option>
@@ -95,9 +98,7 @@ body {
 
   <label for"date"> For crime data, select a starting date, in YYYY-MM-DD format <small>(Warning, Dates earlier than 2015-01-01 will take a long time)</small> </label>
   <input id="date" name="date", value="{{ current_date }}"><br>
-  <small>Notes:<br>
-Studio apartments are considered as having 0 bedroom<br>
-Houses for auction do not have prices and will not be included in scoring<br></small>
+  
   <input type="submit" value="Search">
 </form>
 

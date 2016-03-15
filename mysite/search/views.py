@@ -173,10 +173,12 @@ def results(request):
 
         )))
     # Adds error message if the number of results is 0 or too large
-    if len(house_list) > 100:
+    
+    if len(house_list) > 200:
         errors.append("Too many results, please narrow down your search.")
         c["errors"]=errors
         return render(request, 'search/home.html', c)
+    
     if len(house_list) ==0:
         errors.append("No results found.")
         c["errors"]=errors
@@ -220,7 +222,7 @@ def results(request):
         total_scores.append(Yelp_results[i]+database_scores[i])
     # Passes the houses, user input, scores, and preferences into ranking to get the final scores 
     # Also sets the scores of each house object
-    print(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
+    
     raw_scores_dict = ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
     scores_dict = {}
     top_ten_address = []
