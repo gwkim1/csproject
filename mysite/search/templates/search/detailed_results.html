@@ -10,7 +10,14 @@ body {
 }
 </style>
 </head>
-    
+<button onclick="goBack()">Go Back to Results</button>
+
+
+<script>
+function goBack() {
+    window.history.back();
+}
+</script>
 <title> Detailed Results </title>
 <h3> Detailed Results for {{current_address}}</h3>
 <p>Price: ${{current_price}} </p>

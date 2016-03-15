@@ -17,7 +17,7 @@ import ranking
 import shutil
 
 
-DATABASE_CATEGORIES=["Violent", "Property", "QoL", "Other"]#, "bike_racks", "fire", "police"]
+DATABASE_CATEGORIES=["Violent", "Property", "Other", "QoL"]#, "bike_racks", "fire", "police"]
 HOUSE_PATH="search/templates/search/house_info"
 PREF_OPTIONS_DICT = {"zillow": ["price", "house_type","bathroom","bedroom"],
     "yelp":["restaurants", "active life" , "arts and entertainment",  "schools/education",  "health establishments",  "nightlife",  "shopping outlets"],
@@ -189,7 +189,7 @@ def results(request):
     scores=[]
 
     # Stores the scores gotten from yelp
-    print("requesting Yelp")
+    print("Requesting Yelp")
     Yelp_results=Yelp.get_yelp_scores(list_of_house_coords,distance,Yelp_pref)
     # Stores the results gotten from database
     database_results=sql_stuff.search(date, list_of_house_coords, distance, "search.db")
@@ -221,7 +221,6 @@ def results(request):
     # Passes the houses, user input, scores, and preferences into ranking to get the final scores 
     # Also sets the scores of each house object
     raw_scores_dict = ranking.get_final_scores(house_list, criteria_list, total_scores, zillow_pref, database_pref,Yelp_pref)
-    #print(raw_scores_dict)
     scores_dict = {}
     top_ten_address = []
     for pref in raw_scores_dict:
@@ -240,31 +239,44 @@ def results(request):
             if key in PREF_OPTIONS_DICT[pref]:
                 scores[pref][key] = (scores_dict[key])
 
-    # Changes the data in scores into Address, value, value, value form to use in the bar chart
-    # Also stores the variable names
+    # If there are more than 10 results the graphs can get messy looking
+    # We separate out the top 10 to use in graph generation
     if len(house_list) > 10:
         list_top_coords = []
+        list_top_houses = []
         for address in top_ten_address:
             for house in house_list:
                 if address == house.address:
                     list_top_coords.append((house.lat, house.long))
+                    list_top_houses.append(house)
     
         top_Yelp_results=Yelp.get_yelp_scores(list_top_coords,distance,Yelp_pref)
+    else:
+        list_top_houses = house_list
 
+    # Changes the data in scores into Address, value, value, value form to use in the bar chart
+    # Also stores the variable names
     bar_data_dict = {"zillow":[[]], "yelp":[[]],"crime":[[]]}
+    # For preference category
     for key in scores:
         variable_list = PREF_OPTIONS_DICT[key]
+        # For each property in the top 10
         for i in range(len(top_ten_address)):
             value_list = []
+            # Checks for the variables that the user cares about
             for variable in PREF_OPTIONS_DICT[key]:
                 if variable in scores[key]:
+                    # If the yelp scores were not generated before, generate them
                     if len(house_list) > 10 and key == "yelp":
                         value_list.append(math.ceil(top_Yelp_results[i][YELP_DICT[variable]]*100))
                     else:
+                    # Add the score as 0 if the user does not care
                         value_list.append(scores[key][variable][i])
                 else:
                     value_list.append(0)
+            # Puts the data in desired form
             bar_data_dict[key][0].append([top_ten_address[i]] + value_list)
+        # Adds the variable name
         bar_data_dict[key].append(variable_list)
 
     
@@ -279,9 +291,7 @@ def results(request):
             with open(HOUSE_PATH+"/{}/{}.csv".format(i.house_id, j), "w") as f:
                 f.write("date,primary type,secondary type,latitude,longitude\n")
                 for k in database_results[index][j][0]:
-                    #need all of them to be strings for the join method
                     tuple_list=[str(l) for l in k]
-                    #print(tuple_list)
                     row_string=",".join(tuple_list)
                     f.write(row_string+"\n")
         index+=1
@@ -301,7 +311,7 @@ def results(request):
     # Gets the data from the csv files and puts it in the correct form
     bar_data = []
     all_crimes = {}
-    for i in house_list:
+    for i in list_top_houses:
         for j in DATABASE_CATEGORIES:
             all_crimes[j]={}
             with open(HOUSE_PATH+"/{}/{}.csv".format(i.house_id,j), "r") as f:
@@ -315,8 +325,7 @@ def results(request):
             t_labels.sort()
             t=range(len(t_labels))
             s=[all_crimes[j][k] for k in t_labels]
-            if len(bar_data) <= 10:
-                bar_data.append((i.address, j, sum(s)))
+            bar_data.append((i.address, j, sum(s)))
     bar_dict = {}
     for i in bar_data:
         if i[0] not in bar_dict:
@@ -324,8 +333,8 @@ def results(request):
         else:
             bar_dict[i[0]].append(i[2])
     bar_list = []
-    for key, value in bar_dict.items():
-        bar_list.append([key]+ value)
+    for key in top_ten_address:
+        bar_list.append([key]+ bar_dict[key])
     # Replaces the c dictionary with the house_list and fills it with the bar graph data
     c={'results': house_list}
     c['database_cat'] = DATABASE_CATEGORIES
