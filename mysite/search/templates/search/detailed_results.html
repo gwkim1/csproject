@@ -115,15 +115,13 @@ function initMap() {
   <head>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
+      // Tutorial heavily modified from https://developers.google.com/chart/interactive/docs/gallery/linechart
+      // And https://developers.google.com/chart/interactive/docs/gallery/piechart
       google.charts.load('current', {'packages':['corechart']});
       google.charts.setOnLoadCallback(drawChart);
       function drawChart() {
-
+        // Total Crime Data to use in the pie chart
         var data = new google.visualization.DataTable();
-
-        //var results = "{{ variable_list }}";
-
-        //var len_results = results.length;
 
         data.addColumn('string', 'Crime');
         data.addColumn('number', 'Number');
@@ -139,11 +137,9 @@ function initMap() {
 
         {% endfor %}
 
+        //Temporal Crime Data to use in the line chart
         var data1 = new google.visualization.DataTable();
 
-        //var results = "{{ variable_list }}";
-
-        //var len_results = results.length;
 
         data1.addColumn('string', 'Crime');
         {% for crime_type in database_cat %}
@@ -153,19 +149,21 @@ function initMap() {
         {% endfor %}
 
 
-
-        
-
         {% for gdata in graph_data %}
 
         data1.addRow(
 
-          ['{{gdata.0}}',parseInt('{{gdata.1}}'),parseInt('{{gdata.2}}'),parseInt('{{gdata.3}}'),parseInt('{{gdata.4}}')]);
+          ['{{gdata.0}}', parseInt('{{gdata.1}}'), parseInt('{{gdata.2}}'),
+          parseInt('{{gdata.3}}'), parseInt('{{gdata.4}}')]);
 
         {% endfor %}
 
         var options = {
           title: 'Crime Pie Chart'
+
+        };
+        var options1 = {
+          title: 'Crime Time Graph'
 
         };
 
@@ -175,7 +173,7 @@ function initMap() {
 
         var chart1 = new google.visualization.LineChart(document.getElementById('linechart'));
 
-        chart1.draw(data1, options);
+        chart1.draw(data1, options1);
       }
     </script>
   </head>

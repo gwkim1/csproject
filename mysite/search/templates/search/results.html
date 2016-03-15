@@ -57,8 +57,11 @@ function goBack() {
       google.charts.setOnLoadCallback(drawTable);
       google.charts.setOnLoadCallback(drawChart);
       // Draws the table using the google charts table 
+      // Tutorial heavily modified  from https://developers.google.com/chart/interactive/docs/datatables_dataviews#emptytable
+      // And https://developers.google.com/chart/interactive/docs/gallery/piechart
+      // And https://developers.google.com/chart/interactive/docs/gallery/barchart
       function drawTable() {
-
+        // Data for the house objects
         var data = new google.visualization.DataTable();
 
         data.addColumn('string', 'house_id');
@@ -75,7 +78,8 @@ function goBack() {
 
         data.addRow(
 
-          ['{{result.house_id}}','{{result.address}}', parseFloat('{{result.score}}'),  parseInt('{{result.price}}'), '{{result.house_type}}', '{{result.bathroom}}', '{{result.bedroom}}']);
+          ['{{result.house_id}}','{{result.address}}', parseFloat('{{result.score}}'),
+            parseInt('{{result.price}}'), '{{result.house_type}}', '{{result.bathroom}}', '{{result.bedroom}}']);
 
         {% endfor %}
 
@@ -88,7 +92,8 @@ function goBack() {
         google.visualization.events.addListener(table, 'select', selectHandler);
 
 
-// The selection handler: Taken and heavily modified from https://developers.google.com/chart/interactive/docs/events
+      // The selection handler: Taken and heavily modified from https://developers.google.com/chart/interactive/docs/events
+      // Stores the selected house_id
 
       function selectHandler() {
         var selection = table.getSelection();
@@ -104,9 +109,11 @@ function goBack() {
         document.getElementById("display").innerHTML = message;
         document.getElementById("house_id").value = message;
       }
-// Draws the barcharts using the google charts' barchart
+      // Draws the barcharts using the google charts' barchart
       }
+      // Only the variables that the user specified will be shown
       function drawChart() {
+        // Data for the total crimes to use in pie chart
         var data = new google.visualization.DataTable();
         data.addColumn('string', 'Address');
         {% for crime_type in database_cat %}
@@ -119,11 +126,12 @@ function goBack() {
 
         data.addRow(
 
-          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}')]);
+          ['{{data.0}}', parseInt('{{data.1}}'), parseInt('{{data.2}}'),
+          parseInt('{{data.3}}'), parseInt('{{data.4}}')]);
 
         {% endfor %}
 
-
+        // Data for the houses to use in a bar chart
         var data1 = new google.visualization.DataTable();
 
         data1.addColumn('string', 'Address');
@@ -138,11 +146,12 @@ function goBack() {
 
         data1.addRow(
 
-          ['{{data.0}}',parseInt('{{data.1}}'),parseInt('{{data.2}}'),parseInt('{{data.3}}'),parseInt('{{data.4}}')]);
+          ['{{data.0}}', parseInt('{{data.1}}'), parseInt('{{data.2}}'),
+          parseInt('{{data.3}}'), parseInt('{{data.4}}')]);
 
         {% endfor %}
 
-
+        // Data for the yelp data to use in a bar chart
         var data2 = new google.visualization.DataTable();
 
         data2.addColumn('string', 'Address');
@@ -160,9 +169,7 @@ function goBack() {
 
         {% endfor %}
 
-
-
-
+        // Data for the city data to use in a bar chart
         var data3 = new google.visualization.DataTable();
 
         data3.addColumn('string', 'Address');
@@ -182,34 +189,34 @@ function goBack() {
         {% endfor %}
 
 
-
+        // Options to add text and specifications
         var options = {
           chart: {
             title: 'Type of Crimes in Area',
             subtitle: 'Within '+ '{{current_distance}}'+'m' +' since ' + '{{current_date}}',
           },
-          bars: 'horizontal' // Required for Material Bar Charts.
+          bars: 'horizontal'
         };
         var options1 = {
           chart: {
             title: 'House attribute scores',
             subtitle: 'Scores based on house attributes',
           },
-          bars: 'horizontal' // Required for Material Bar Charts.
+          bars: 'horizontal'
         };
         var options2 = {
           chart: {
             title: 'Yelp Scores',
             subtitle: 'Relative scores based on aggregate ratings',
           },
-          bars: 'horizontal' // Required for Material Bar Charts.
+          bars: 'horizontal'
         };
         var options3 = {
           chart: {
             title: 'Crime Scores',
             subtitle: 'Relative scores based on number of crimes and number of crimes in larger area',
           },
-          bars: 'horizontal' // Required for Material Bar Charts.
+          bars: 'horizontal'
         };
 
 

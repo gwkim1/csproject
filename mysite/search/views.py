@@ -20,9 +20,12 @@ import shutil
 DATABASE_CATEGORIES=["Violent", "Property", "Other", "QoL"]#, "bike_racks", "fire", "police"]
 HOUSE_PATH="search/templates/search/house_info"
 PREF_OPTIONS_DICT = {"zillow": ["price", "house_type","bathroom","bedroom"],
-    "yelp":["restaurants", "active life" , "arts and entertainment",  "schools/education",  "health establishments",  "nightlife",  "shopping outlets"],
-     "crime":["violent crime",  "property crime", "other victimed non-violent crime",  "quality of life crime"]}
-YELP_DICT = {"restaurants": 0, "active life":1 , "arts and entertainment":2,  "schools/education":3,  
+    "yelp":["restaurants", "active life" , "arts and entertainment",
+      "schools/education",  "health establishments",  "nightlife",  "shopping outlets"],
+     "crime":["violent crime",  "property crime",
+      "other victimed non-violent crime",  "quality of life crime"]}
+YELP_DICT = {"restaurants": 0, "active life":1 ,
+ "arts and entertainment":2,  "schools/education":3,  
 "health establishments": 4,  "nightlife": 5,  "shopping outlets":6}
 def about(request):
     c={'names': 'Pedro, Eric, Ryan,'}
@@ -127,41 +130,42 @@ def results(request):
     try:
         c["current_max_bathroom"]=request.POST.get("max_bathroom")
         current_max_bathroom=int(c["current_max_bathroom"])
-        assert current_max_bathroom>=0
+        assert current_max_bathroom >= 0
         try:
-            c["current_min_bathroom"]=request.POST.get("min_bathroom")
+            c["current_min_bathroom"] = request.POST.get("min_bathroom")
             current_min_bathroom=int(c["current_min_bathroom"])
-            assert current_min_bathroom>=0 and current_min_bathroom<=current_max_bathroom
+            assert current_min_bathroom >= 0 and current_min_bathroom <= current_max_bathroom
         except: 
             errors.append("min bathroom should be an integer value greater than or equal to 0, and less than or equal to max bathroom")
     except:
         errors.append("max bathroom should be an integer value greater than or equal to 0")
 
     try:
-        c["current_max_bedroom"]=request.POST.get("max_bedroom")
+        c["current_max_bedroom"] = request.POST.get("max_bedroom")
         current_max_bedroom=int(c["current_max_bedroom"])
-        assert current_max_bedroom>=0
+        assert current_max_bedroom >= 0
         try:
-            c["current_min_bedroom"]=request.POST.get("min_bedroom")
-            current_min_bedroom=int(c["current_min_bedroom"])
-            assert current_min_bedroom>=0 and current_min_bedroom<=current_max_bedroom
+            c["current_min_bedroom"] = request.POST.get("min_bedroom")
+            current_min_bedroom = int(c["current_min_bedroom"])
+            assert current_min_bedroom >= 0 and current_min_bedroom <= current_max_bedroom
         except: 
             errors.append("min bedroom should be an integer value greater than or equal to 0, and less than or equal to max bedroom")
     except:
         errors.append("max bedroom should be an integer value greater than or equal to 0")
     questions=[]
     count=1
-    with open(current_path+"/search/templates/search/survey.txt") as f:
+    with open(current_path + "/search/templates/search/survey.txt") as f:
         for line in f:
             questions.append([line, count])
-            count+=1
-    c["survey"]=questions
-    if len(errors)>0:
-        c["errors"]=errors
+            count += 1
+    c["survey"] = questions
+    if len(errors) > 0:
+        c["errors"] = errors
         return render(request, 'search/home.html', c)
 
 
-    criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit], ["bedroom", current_min_bedroom, current_max_bedroom],
+    criteria_list =  [["price", current_price_lower_limit, current_price_upper_limit],
+     ["bedroom", current_min_bedroom, current_max_bedroom],
                       ["bathroom", current_min_bathroom, current_max_bathroom], house_types]
     
     print("Querying zillow...")
@@ -306,7 +310,8 @@ def results(request):
             if "," in address:
                 address = address.replace(',', '')
 
-            row_string="{},{},{},{},{},{},{},{},{}".format(j.house_id, address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score, j.link)
+            row_string="{},{},{},{},{},{},{},{},{}".format(j.house_id,
+             address, j.price, j.bedroom, j.bathroom, j.lat, j.long, j.score, j.link)
             f.write(row_string+"\n")
 
 
@@ -424,13 +429,15 @@ def detailed_results(request):
         for j in range(len(crime_data)):
             crime_list[j].append(crime_data[j])
     c['graph_data'] = crime_list
+    # Passes in the database categories for the pie chart
     c['database_cat'] = DATABASE_CATEGORIES
-
+    # Gets the category selected, not selecting is the equivalent of no filter for category
     current_cat = request.POST.get('cat')
     if not current_cat:
         current_cat = ""
-
-    c['categories'] = ["restaurants", "active", "arts", "education", "health", "nightlife", "shopping"]
+    # Passes the yelp categories to use in the form
+    c['categories'] = ["restaurants", "active",
+     "arts", "education", "health", "nightlife", "shopping"]
     distance = float(c["current_distance"])
     units = request.POST.get("distance_type")
     # Corrects distance for units and limit (Yelp limit is 40000)
@@ -438,11 +445,13 @@ def detailed_results(request):
         distance *= 1609.34
     if distance > 40000:
         distance = 40000
-    print(c["current_link"])
     c["current_term"] =request.POST.get("term", "food")
     page = request.POST.get('page',1)
-    c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]), distance, c['current_term'], category_filter = current_cat, offset = (int(page)-1)*20)
+    c['current_page'] = page
+    # Stores and passes in the Yelp results 
+    c['results'], total = Yelp.yelp_search((c["current_lat"], c["current_long"]),
+     distance, c['current_term'], category_filter = current_cat, offset = (int(page)-1)*20)
+    # Calculates the number of pages the user can request
     c['pages'] = list(range(1,math.ceil(total/20)))
     
-    c['current_page'] = page
     return render(request, 'search/detailed_results.html', c)
