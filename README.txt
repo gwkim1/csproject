@@ -35,6 +35,7 @@ There are also two auxiliary pages, error and about which are relatively self ex
 
 Chicago database:
 Structure:
+--csproject/chicago_data/Clean: directory where all the csv files from the city of chicago data were stored. (crime data, fire/police stations, divvy bikes, libraries, parks). Only the crime datasets ended up being used, but all of these were cleaned substantially at some point. The crime datasets were the most substantial out of them all
 
 --csproject/chicago_data/comma_parser.sh: file which is meant to remove commas from fields in csv files, replaces them with ; (commas problematic when inputting data into sqlite)
 
@@ -44,7 +45,7 @@ Structure:
 
 sql_stuff.py is called whenever the website performs a search, but it is possible to test the main function (search()) with the example input shown in the docstring
 
-To get the data and clean it, do the following:
+To get the crime data and clean it, do the following:
 
 0) Remove any crime files and IUCR_codes.csv from csproject/chicago_data/Clean
 1) Download csv exports of the crime datasets from the city of chicago data portal for any number of years (as many as you want)
