@@ -16,8 +16,9 @@ def change_date_column(n, filename):
 		#if AM and Hour==12, Hour=00
 		#If PM and Hour!=12, Hour+=12
 		for row in readerf:
-			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})", row[n])
-			MM,DD,YYYY,HH,mm,SS,meridiem=date_search.group(1),date_search.group(2),date_search.group(3),date_search.group(4),date_search.group(5),date_search.group(6),date_search.group(7)
+			date_search=re.search("([0-9]{2})/([0-9]{2})/([0-9]{4}) ([0-9]{2}):([0-9]{2}):([0-9]{2}) ([APM]{2})",row[n])
+			MM,DD,YYYY,HH,mm,SS,meridiem=date_search.group(1),date_search.group(2),date_search.group(3),
+			date_search.group(4),date_search.group(5),date_search.group(6),date_search.group(7)
 			if meridiem=="PM" and HH!="12":
 				int_hour=int(HH)
 				HH=str(int_hour+12)
@@ -77,7 +78,8 @@ def add_crime_codes(filename, code_col, prim_col, sec_col):
 			try:
 			    assert row[code_col].strip() in d
 			except AssertionError:
-				codes_not_in_IUCR_list.add(", ".join([row[code_col].strip(),row[prim_col].strip(),row[sec_col].strip()]))
+				codes_not_in_IUCR_list.add(", ".join([row[code_col].strip(),
+					row[prim_col].strip(),row[sec_col].strip()]))
 	with open(data_folder+"IUCR_codes.csv", "a") as f:
 		changed=False
 		for j in codes_not_in_IUCR_list:
@@ -87,7 +89,8 @@ def add_crime_codes(filename, code_col, prim_col, sec_col):
 
 
 def check_columns(filename):
-	'''checks a CSV file for the expected number of fields for each row based on the number of fields in the first row, assumed to be a header
+	'''checks a CSV file for the expected number of fields for each row
+	based on the number of fields in the first row, assumed to be a header
 	also checks whether there are any commas inside fields.'''
 	with open(data_folder+filename) as f:
 		header=f.readline()
@@ -101,8 +104,9 @@ def check_columns(filename):
 				assert "," not in j, "row {} has a comma in field {}. Please run comma_parser and try again {}".format(row, j)
 
 def fix_codes(n, filename):
-	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row, specified as an input
-	Makes it so every IUCR code is exactly 4 characters long (i.e. 13A-> 013A) for constistency'''
+	'''Appends 0 to the beginning of IUCR codes at the nth spot for each row,
+	 specified as an input. Makes it so every IUCR code is exactly 4
+	 characters long (i.e. 13A-> 013A) for constistency'''
 	with open(data_folder+filename) as f, open(data_folder+filename+"2", "w") as g:
 		header=f.readline()
 		g.write(header)
@@ -121,11 +125,19 @@ def fix_codes(n, filename):
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
 def check_codes(filename, code_col, prim_col, sec_col):
-	'''Used with the crimes datasets to check for consistency between them and IUCR_codes.csv (before erasing the columns)
-	Inputs: code_col is the column index for the IUCR codes, prim_col is column index for the primary type description, sec_col is column index for secondary type description (all in the input filename)
+	'''Used with the crimes datasets to check for consistency between them
+	 and IUCR_codes.csv (before erasing the columns)
+	Inputs: code_col is the column index for the IUCR codes, 
+	        prim_col is column index for the primary type description, 
+	        sec_col is column index for secondary type description 
+	        (all in the input filename)
+	
 	filename is a crime dataset with these three columns
+
 	(IUCR_codes.csv has code_col, prim_col, and sec_col 0,1,2 respectively)
-	Some annoyances: IUCR Code is 5114 is inconsistent across crime files: It is either NON - CRIMINAL or NON-CRIMINAL in different crime files'''
+
+	Some annoyances: IUCR Code is 5114 is inconsistent across crime files: 
+	It is either NON - CRIMINAL or NON-CRIMINAL in different crime files'''
 	d={}
 	with open(data_folder+filename) as f, open(data_folder+"IUCR_codes.csv") as g:
 		headerf, headerg=f.readline(), g.readline()
@@ -138,8 +150,10 @@ def check_codes(filename, code_col, prim_col, sec_col):
 		count=1
 		for row in readerf:
 			if row[code_col].strip()!="5114":
-			    assert d[row[code_col].strip()]==(row[prim_col].strip(), row[sec_col].strip()), "code {} in row {} is {},{} in crime file but {},{} in IUCR codes".\
-			    format( row[code_col].strip() , count+1, row[prim_col].strip(), row[sec_col].strip(), d[row[code_col].strip()][0] ,d[row[code_col].strip()][1])
+			    assert d[row[code_col].strip()]==(row[prim_col].strip(), row[sec_col].strip()),
+			     "code {} in row {} is {},{} in crime file but {},{} in IUCR codes".
+			     format( row[code_col].strip() , count+1, row[prim_col].strip(), row[sec_col].strip(),
+			     d[row[code_col].strip()][0] ,d[row[code_col].strip()][1])
 			else:
 				primary_types=["NON-CRIMINAL", "NON - CRIMINAL"]
 				sec_types="FOID - REVOCATION"
@@ -147,8 +161,10 @@ def check_codes(filename, code_col, prim_col, sec_col):
 			count+=1
 
 def remove_columns(filename, columns_to_erase):
-	'''columns=list of column strings to remove. Checks header in filename given, assumed csv
-	Also strips every field. So, if columns_to_erase is an empty list, it simply strips every field of blank spaces.'''
+	'''columns=list of column strings to remove. 
+	Checks header in filename given, assumed csv
+	Also strips every field. So, if columns_to_erase 
+	is an empty list, it simply strips every field of blank spaces.'''
 	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
 		header=f.readline()
 		columns=header.split(",")
@@ -174,8 +190,10 @@ def remove_columns(filename, columns_to_erase):
 	os.rename(data_folder+filename+"2", data_folder+filename)
 
 def turn_loc_into_latlong(filename):
-	'''Some csv files had a 'location' field with a latitude, longitude tuple inside, plus some extra information (address, city, state, zip)
-	This extracts the lat/long tuple and adds it to the file as two extra columns for each row, when available'''
+	'''Some csv files had a 'location' field with a latitude, longitude tuple
+	 inside, plus some extra information (address, city, state, zip)
+	This extracts the lat/long tuple and adds it to the file as 
+	two extra columns for each row, when available'''
 	with open(data_folder+filename, "r") as f, open(data_folder+filename+"2", "w") as g:
 		reader=csv.reader(f, delimiter=",")
 		header=next(reader)
@@ -201,9 +219,11 @@ def get_header(filename):
 
 
 def clean_crime_csv(filename):
-	'''Runs a sequence of functions above, which was originally run for all crime files
-	Makes my job easier when I redownload an updated crimes_2016.csv.
-	Please run ./comma_parser.sh crimes_2016.csv BEFORE running this'''
+	'''Runs a sequence of functions above, which was originally run 
+	for all crime files. Makes my job easier when I redownload an 
+	updated crimes_2016.csv. Please run 
+	./comma_parser.sh Clean/crimes_2016.csv 
+	BEFORE running this'''
 	keep_these_columns=["Date", "IUCR", "Latitude", "Longitude"]
 	header=get_header(filename)
 
