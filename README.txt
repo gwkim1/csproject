@@ -19,6 +19,8 @@ this change consumed quite a lot of time for me to change the way my code scrape
 ranking.py incorporates the 3 sets of scores generated from Zillow, Chicago, and Yelp dataset,
 and generates a final weighted score based on the preference given by the user.
 
+packages used: bs4, urllib.parse, urllib.request, re, numpy as np
+
 
 Yelp:
 The Yelp functions achieve 2 main goals, to search Yelp for businesses and relevant information and to generate a score based on under inputs.
